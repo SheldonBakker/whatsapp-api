@@ -70,10 +70,25 @@ const addResponseTime = (req, res, next) => {
   next()
 }
 
+// CORS middleware to disable CORS restrictions
+const disableCors = (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-api-key, Authorization')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
+  next()
+}
+
 // Initialize Express app
 app.disable('x-powered-by')
 app.use(requestLogger)
 app.use(addResponseTime)
+app.use(disableCors) // Add CORS middleware
 app.use(bodyParser.json({ limit: maxAttachmentSize + 1000000 }))
 app.use(bodyParser.urlencoded({ limit: maxAttachmentSize + 1000000, extended: true }))
 app.use('/', routes)
