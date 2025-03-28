@@ -152,11 +152,6 @@ The API provides endpoints for various WhatsApp functionalities:
 - Delete chats
 - Fetch messages
 
-### Groups
-- Create and manage groups
-- Add/remove participants
-- Promote/demote admins
-- Set group info and picture
 
 ### Contacts
 - Get contact information
@@ -183,24 +178,10 @@ x-api-key: your-api-key
 }
 ```
 
-### Creating a Group
-
-```http
-POST /group/create/{sessionId}
-Content-Type: application/json
-x-api-key: your-api-key
-
-{
-  "name": "My Group",
-  "participants": ["123456789@c.us", "987654321@c.us"]
-}
-```
-
 ## 📱 Webhook Integration
 
 This API can send webhooks for various WhatsApp events. Configure the `BASE_WEBHOOK_URL` environment variable to receive notifications about:
 - New messages
-- Status changes
 - QR code refreshes
 - Session updates
 - And more
