@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "jest --runInBand",
+    "test:api": "cross-env PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true DISABLE_WEB_SECURITY=true jest tests/api.test.js --detectOpenHandles --forceExit",
     "swagger": "node swagger.js"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
     "whatsapp-web.js": "^1.26.0"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "eslint": "^8.38.0",
     "eslint-config-standard": "^17.0.0",
     "eslint-plugin-import": "^2.27.5",

@@ -46,7 +46,7 @@
         }
       }
     },
-    "/localCallbackExample": {
+    "/Callback": {
       "post": {
         "tags": [
           "Health"

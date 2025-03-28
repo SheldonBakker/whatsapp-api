@@ -103,7 +103,7 @@ const healthCheck = async (req, res) => {
 /**
  * Example callback function that generates a QR code and writes a log file
  *
- * @function callback
+ * @function Callback
  * @async
  * @param {Object} req - Express request object containing a body object with dataType and data
  * @param {string} req.body.dataType - Type of data (in this case, 'qr')

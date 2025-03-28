@@ -108,7 +108,7 @@ if (enableSwaggerEndpoint) {
       .swagger-ui .opblock .opblock-summary { border: none }
       .swagger-ui .opblock .opblock-summary-method { border-radius: 4px; min-width: 80px }
     `,
-    customSiteTitle: 'WhatsApp API - Minimal',
+    customSiteTitle: 'WhatsApp API',
     docExpansion: 'list',
     defaultModelsExpandDepth: -1,
     displayRequestDuration: true,

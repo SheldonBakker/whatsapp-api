@@ -1,22 +1,30 @@
 services:
   app:
     container_name: whatsapp_web_api
-    image: SheldonBakker/whatsapp-api:latest  # Pull latest image from Docker Hub
+    build: .  # Build from local Dockerfile instead of using remote image
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - API_KEY=0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2  # Optional global API key
-      - BASE_WEBHOOK_URL=http://localhost:3000/callback
-      - ENABLE_LOCAL_CALLBACK_EXAMPLE=FALSE  # Not recommended for production
-      - MAX_ATTACHMENT_SIZE=5000000  # Max attachment size (bytes)
-      - SET_MESSAGES_AS_SEEN=FALSE  # Auto-mark messages as read
-      - DISABLED_CALLBACKS=message_ack|message_reaction  # Prevent sending these callbacks
-      - ENABLE_SWAGGER_ENDPOINT=TRUE  # Enables /api-docs
-      - RATE_LIMIT_MAX=1000  # Max requests per time frame
-      - RATE_LIMIT_WINDOW_MS=1000  # Rate limit window (ms)
-      - WEB_VERSION='2.2328.5'  # WhatsApp Web version
-      - WEB_VERSION_CACHE_TYPE=none  # Source for WhatsApp Web version (local, remote, none)
-      - RECOVER_SESSIONS=TRUE  # Recover session on page failure
+      - PORT=3000  # API port
+      - API_KEY=0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2  # Global API key
+      - BASE_WEBHOOK_URL=http://localhost:3000/Callback  # Required for WhatsApp events
+      - ENABLE_CALLBACK=TRUE  # Disable example callback for production
+      - MAX_ATTACHMENT_SIZE=10000000  # 10MB max attachment size
+      - SET_MESSAGES_AS_SEEN=FALSE  # Don't auto-mark messages as read
+      - DISABLED_CALLBACKS=message_ack|message_reaction|unread_count|message_edit|message_ciphertext
+      - ENABLE_SWAGGER_ENDPOINT=TRUE  # Enable API documentation
+      - RATE_LIMIT_MAX=1000  # Rate limiting configuration
+      - RATE_LIMIT_WINDOW_MS=1000
+      - RECOVER_SESSIONS=TRUE  # Auto recover failed sessions
+      - OPTIMIZE_CHROME_MEMORY=FALSE  # Disable memory optimization for stability
+      - HEADLESS_MODE=TRUE  # Run Chrome in headless mode
+      - PUPPETEER_DEBUG=FALSE  # Disable puppeteer debugging in production
     volumes:
-      - ./sessions:/usr/src/app/sessions  # Mount local session folder
+      - ./sessions:/usr/src/app/sessions  # Persist sessions between container restarts
+    healthcheck:  # Add healthcheck to ensure container is running properly
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
