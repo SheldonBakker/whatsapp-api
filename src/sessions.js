@@ -2,7 +2,7 @@ const { Client, LocalAuth } = require('whatsapp-web.js')
 const fs = require('fs')
 const path = require('path')
 const sessions = new Map()
-const { baseWebhookURL, sessionFolderPath, maxAttachmentSize, setMessagesAsSeen, webVersion, webVersionCacheType, recoverSessions } = require('./config')
+const { baseWebhookURL, sessionFolderPath, maxAttachmentSize, setMessagesAsSeen, webVersion, webVersionCacheType, recoverSessions, optimizeChromeMemory, headlessMode, puppeteerDebug } = require('./config')
 const { triggerWebhook, waitForNestedObject, checkIfEventisEnabled } = require('./utils')
 
 // Function to validate if the session is ready
@@ -95,16 +95,35 @@ const setupSession = (sessionId) => {
     delete localAuth.logout
     localAuth.logout = () => { }
 
+    // Configure Chrome args based on optimization setting
+    const baseArgs = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+
+    // Log if debug mode is enabled
+    if (puppeteerDebug) {
+      console.log(`[DEBUG] Session ${sessionId} configuration:`)
+      console.log(`[DEBUG] - Headless mode: ${headlessMode ? 'enabled' : 'disabled'}`)
+      console.log(`[DEBUG] - Memory optimization: ${optimizeChromeMemory ? 'disabled for stability' : 'disabled'}`)
+      console.log(`[DEBUG] - Chrome executable: ${process.env.CHROME_BIN || 'default'}`)
+    }
+
+    // Create client configuration with reduced customization to avoid connection issues
     const clientOptions = {
       puppeteer: {
-        executablePath: process.env.CHROME_BIN || null,
-        // headless: false,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+        headless: headlessMode ? 'new' : false,
+        args: [
+          ...baseArgs,
+          '--disable-web-security',
+          '--no-first-run',
+          '--disable-infobars'
+        ],
+        ignoreHTTPSErrors: true,
+        timeout: 120000
       },
       userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
       authStrategy: localAuth
     }
 
+    // Use web version configuration if available
     if (webVersion) {
       clientOptions.webVersion = webVersion
       switch (webVersionCacheType.toLowerCase()) {
@@ -128,7 +147,41 @@ const setupSession = (sessionId) => {
 
     const client = new Client(clientOptions)
 
-    client.initialize().catch(err => console.log('Initialize error:', err.message))
+    // Add initialization with retry logic
+    const initializeWithRetry = async (maxRetries = 3, delay = 5000) => {
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`Initializing session ${sessionId} (Attempt ${attempt}/${maxRetries})`)
+          await client.initialize()
+          console.log(`Session ${sessionId} initialized successfully`)
+          return
+        } catch (err) {
+          console.error(`Initialization error (Attempt ${attempt}/${maxRetries}):`, err.message)
+
+          // Log more detailed information about the error
+          if (err.stack) {
+            console.error(`Error stack: ${err.stack}`)
+          }
+
+          // Check for specific errors and provide more helpful messages
+          if (err.message.includes('Protocol error') || err.message.includes('Target closed')) {
+            console.error('Browser connection issue detected. This may be due to Chrome process issues or network problems.')
+          } else if (err.message.includes('timeout')) {
+            console.error('Connection timeout. Check your network or increase the timeout value.')
+          }
+
+          if (attempt < maxRetries) {
+            console.log(`Retrying in ${delay / 1000} seconds...`)
+            await new Promise(resolve => setTimeout(resolve, delay))
+          } else {
+            console.error(`Failed to initialize session ${sessionId} after ${maxRetries} attempts`)
+          }
+        }
+      }
+    }
+
+    // Start initialization process
+    initializeWithRetry().catch(err => console.error('Fatal initialization error:', err.message))
 
     initializeEvents(client, sessionId)
 

@@ -2,7 +2,7 @@ const express = require('express')
 const routes = express.Router()
 const swaggerUi = require('swagger-ui-express')
 const swaggerDocument = require('../swagger.json')
-const { enableLocalCallbackExample, enableSwaggerEndpoint } = require('./config')
+const { enableCallback, enableSwaggerEndpoint } = require('./config')
 
 const middleware = require('./middleware')
 const healthController = require('./controllers/healthController')
@@ -19,9 +19,11 @@ const messageController = require('./controllers/messageController')
 // API endpoint to check if server is alive
 routes.get('/ping', /* #swagger.tags = ['Health'] */ healthController.ping)
 // API basic callback
-if (enableLocalCallbackExample) {
-  routes.post('/localCallbackExample', [middleware.apikey, middleware.rateLimiter], /* #swagger.tags = ['Health'] */ healthController.localCallbackExample)
+if (enableCallback) {
+  routes.post('/CallBack', [middleware.apikey, middleware.rateLimiter], /* #swagger.tags = ['Health'] */ healthController.Callback)
 }
+// Comprehensive health check endpoint
+routes.get('/health', [middleware.apikey], /* #swagger.tags = ['Health'] */ healthController.healthCheck)
 
 /**
  * ================
@@ -54,9 +56,18 @@ sessionRouter.use(middleware.clientSwagger)
 routes.use('/client', clientRouter)
 
 clientRouter.get('/getClassInfo/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], clientController.getClassInfo)
-clientRouter.post('/getNumberId/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], clientController.getNumberId)
+clientRouter.post('/getNumberId/:sessionId', [
+  middleware.sessionNameValidation,
+  middleware.sessionValidation,
+  middleware.validateRequest(['number'])
+], clientController.getNumberId)
 clientRouter.get('/getState/:sessionId', [middleware.sessionNameValidation], clientController.getState)
-clientRouter.post('/sendMessage/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], clientController.sendMessage)
+clientRouter.post('/sendMessage/:sessionId', [
+  middleware.sessionNameValidation,
+  middleware.sessionValidation,
+  middleware.validateRequest(['chatId', 'content', 'contentType']),
+  middleware.sanitizeContentType()
+], clientController.sendMessage)
 clientRouter.get('/getWWebVersion/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], clientController.getWWebVersion)
 
 /**
@@ -69,7 +80,11 @@ messageRouter.use(middleware.apikey)
 sessionRouter.use(middleware.messageSwagger)
 routes.use('/message', messageRouter)
 
-messageRouter.post('/delete/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], messageController.deleteMessage)
+messageRouter.post('/delete/:sessionId', [
+  middleware.sessionNameValidation,
+  middleware.sessionValidation,
+  middleware.validateRequest(['chatId', 'messageId'])
+], messageController.deleteMessage)
 
 /**
  * ================
