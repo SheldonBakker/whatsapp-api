@@ -3,6 +3,65 @@ const { sendErrorResponse } = require('./utils')
 const { validateSession } = require('./sessions')
 const rateLimiting = require('express-rate-limit')
 
+// Request validation middleware
+const validateRequest = (requiredFields) => {
+  return (req, res, next) => {
+    const missingFields = []
+
+    for (const field of requiredFields) {
+      // Handle nested fields with dot notation (e.g., 'user.name')
+      const parts = field.split('.')
+      let value = req.body
+
+      for (const part of parts) {
+        value = value && value[part]
+        if (value === undefined || value === null) {
+          missingFields.push(field)
+          break
+        }
+      }
+    }
+
+    if (missingFields.length > 0) {
+      return sendErrorResponse(res, 400, `Missing required fields: ${missingFields.join(', ')}`)
+    }
+
+    next()
+  }
+}
+
+// JSON payload size validation
+const validatePayloadSize = (maxSize = 50 * 1024 * 1024) => { // Default 50MB
+  return (req, res, next) => {
+    if (req.headers['content-length'] > maxSize) {
+      return sendErrorResponse(res, 413, 'Payload too large')
+    }
+    next()
+  }
+}
+
+// Sanitize content type
+const sanitizeContentType = () => {
+  return (req, res, next) => {
+    // Sanitize contentType for sendMessage endpoint
+    if (req.body && req.body.contentType) {
+      const validContentTypes = [
+        'string', 'MessageMedia', 'MessageMediaFromURL',
+        'Location', 'Buttons', 'List', 'Contact', 'Poll'
+      ]
+
+      if (!validContentTypes.includes(req.body.contentType)) {
+        return sendErrorResponse(
+          res,
+          400,
+          `Invalid contentType. Must be one of: ${validContentTypes.join(', ')}`
+        )
+      }
+    }
+    next()
+  }
+}
+
 const apikey = async (req, res, next) => {
   /*
     #swagger.security = [{
@@ -18,13 +77,20 @@ const apikey = async (req, res, next) => {
         }
       }
   */
-  if (globalApiKey) {
-    const apiKey = req.headers['x-api-key']
-    if (!apiKey || apiKey !== globalApiKey) {
-      return sendErrorResponse(res, 403, 'Invalid API key')
+  try {
+    if (globalApiKey) {
+      const apiKey = req.headers['x-api-key']
+      if (!apiKey || apiKey !== globalApiKey) {
+        return sendErrorResponse(res, 403, 'Invalid API key')
+      }
+    }
+    next()
+  } catch (error) {
+    console.error('API key validation error:', error)
+    if (!res.headersSent) {
+      return sendErrorResponse(res, 500, 'Internal server error during authentication')
     }
   }
-  next()
 }
 
 const sessionNameValidation = async (req, res, next) => {
@@ -53,20 +119,27 @@ const sessionNameValidation = async (req, res, next) => {
 }
 
 const sessionValidation = async (req, res, next) => {
-  const validation = await validateSession(req.params.sessionId)
-  if (validation.success !== true) {
-    /* #swagger.responses[404] = {
-        description: "Not Found.",
-        content: {
-          "application/json": {
-            schema: { "$ref": "#/definitions/NotFoundResponse" }
+  try {
+    const validation = await validateSession(req.params.sessionId)
+    if (validation.success !== true) {
+      /* #swagger.responses[404] = {
+          description: "Not Found.",
+          content: {
+            "application/json": {
+              schema: { "$ref": "#/definitions/NotFoundResponse" }
+            }
           }
         }
-      }
-    */
-    return sendErrorResponse(res, 404, validation.message)
+      */
+      return sendErrorResponse(res, 404, validation.message)
+    }
+    next()
+  } catch (error) {
+    console.error('Session validation error:', error)
+    if (!res.headersSent) {
+      return sendErrorResponse(res, 500, 'Error validating session')
+    }
   }
-  next()
 }
 
 const rateLimiter = rateLimiting({
@@ -154,26 +227,6 @@ const chatSwagger = async (req, res, next) => {
   next()
 }
 
-const groupChatSwagger = async (req, res, next) => {
-  /*
-    #swagger.tags = ['Group Chat']
-    #swagger.requestBody = {
-      required: true,
-      schema: {
-        type: 'object',
-        properties: {
-          chatId: {
-            type: 'string',
-            description: 'Unique whatsApp identifier for the given Chat (either group or personnal)',
-            example: '6281288888888@c.us'
-          }
-        }
-      }
-    }
-  */
-  next()
-}
-
 module.exports = {
   sessionValidation,
   apikey,
@@ -183,6 +236,8 @@ module.exports = {
   contactSwagger,
   messageSwagger,
   chatSwagger,
-  groupChatSwagger,
-  rateLimiter
+  rateLimiter,
+  validateRequest,
+  validatePayloadSize,
+  sanitizeContentType
 }
