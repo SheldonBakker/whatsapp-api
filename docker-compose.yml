@@ -1,0 +1,22 @@
+services:
+  app:
+    container_name: whatsapp_web_api
+    image: SheldonBakker/whatsapp-api:latest  # Pull latest image from Docker Hub
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - API_KEY=0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2  # Optional global API key
+      - BASE_WEBHOOK_URL=http://localhost:3000/callback
+      - ENABLE_LOCAL_CALLBACK_EXAMPLE=FALSE  # Not recommended for production
+      - MAX_ATTACHMENT_SIZE=5000000  # Max attachment size (bytes)
+      - SET_MESSAGES_AS_SEEN=FALSE  # Auto-mark messages as read
+      - DISABLED_CALLBACKS=message_ack|message_reaction  # Prevent sending these callbacks
+      - ENABLE_SWAGGER_ENDPOINT=TRUE  # Enables /api-docs
+      - RATE_LIMIT_MAX=1000  # Max requests per time frame
+      - RATE_LIMIT_WINDOW_MS=1000  # Rate limit window (ms)
+      - WEB_VERSION='2.2328.5'  # WhatsApp Web version
+      - WEB_VERSION_CACHE_TYPE=none  # Source for WhatsApp Web version (local, remote, none)
+      - RECOVER_SESSIONS=TRUE  # Recover session on page failure
+    volumes:
+      - ./sessions:/usr/src/app/sessions  # Mount local session folder

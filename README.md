@@ -1,185 +1,225 @@
-<div align="center">
-    <br />
-    <p>
-        <a href="https://wwebjs.dev"><img src="https://github.com/wwebjs/logos/blob/main/4_Full%20Logo%20Lockup_Small/small_banner_blue.png?raw=true" title="whatsapp-web.js" alt="WWebJS Website" width="500" /></a>
-    </p>
-    <br />
-    <p>
-		<a href="https://www.npmjs.com/package/whatsapp-web.js"><img src="https://img.shields.io/npm/v/whatsapp-web.js.svg" alt="npm" /></a>
-        <a href="https://depfu.com/github/pedroslopez/whatsapp-web.js?project_id=9765"><img src="https://badges.depfu.com/badges/4a65a0de96ece65fdf39e294e0c8dcba/overview.svg" alt="Depfu" /></a>
-        <img src="https://img.shields.io/badge/WhatsApp_Web-2.3000.1017054665-brightgreen.svg" alt="WhatsApp_Web 2.2346.52" />
-        <a href="https://discord.gg/H7DqQs4"><img src="https://img.shields.io/discord/698610475432411196.svg?logo=discord" alt="Discord server" /></a>
-	</p>
-    <br />
-</div>
+# WhatsApp REST API
 
-## About
-**A WhatsApp API client that connects through the WhatsApp Web browser app**
+A powerful REST API wrapper for the [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) library, providing an easy-to-use interface to interact with the WhatsApp Web platform. This project is designed to be used as a Docker container, making it scalable, secure, and easy to integrate with other non-NodeJS projects.
 
-The library works by launching the WhatsApp Web browser application and managing it using Puppeteer to create an instance of WhatsApp Web, thereby mitigating the risk of being blocked. The WhatsApp API client connects through the WhatsApp Web browser app, accessing its internal functions. This grants you access to nearly all the features available on WhatsApp Web, enabling dynamic handling similar to any other Node.js application.
+![GitHub stars](https://img.shields.io/github/stars/SheldonBakker/whatsapp-api?style=social)
+![GitHub forks](https://img.shields.io/github/forks/SheldonBakker/whatsapp-api?style=social)
+![GitHub issues](https://img.shields.io/github/issues/SheldonBakker/whatsapp-api)
+![GitHub license](https://img.shields.io/github/license/SheldonBakker/whatsapp-api)
 
-> [!IMPORTANT]
-> **It is not guaranteed you will not be blocked by using this method. WhatsApp does not allow bots or unofficial clients on their platform, so this shouldn't be considered totally safe.**
+## ⚠️ Disclaimer
 
-## Links
+**NOTE**: This project is not affiliated with WhatsApp or Meta. I can't guarantee you will not be blocked by using this method, although it has worked for me. WhatsApp does not allow bots or unofficial clients on their platform, so this shouldn't be considered totally safe.
 
-* [Website][website]
-* [Guide][guide] ([source][guide-source]) _(work in progress)_
-* [Documentation][documentation] ([source][documentation-source])
-* [WWebJS Discord][discord]
-* [GitHub][gitHub]
-* [npm][npm]
+## ✨ Features
 
-## Installation
+- 🌐 RESTful API for WhatsApp Web functionality
+- 🔄 Multiple concurrent sessions support
+- 🐳 Docker-ready for easy deployment
+- 📱 Send and receive messages, media, and more
+- 👥 Manage groups, contacts, and chats
+- 🪝 Webhook integration for real-time events
+- 🔐 API key authentication
+- 📚 Swagger documentation
+- ⚡ Rate limiting for protection
+- 🖼️ Media support (images, documents, voice notes, etc.)
 
-The module is now available on npm! `npm i whatsapp-web.js`
+## 🚀 Getting Started
 
-> [!NOTE]
-> **Node ``v18+`` is required.**
+### Prerequisites
 
-## QUICK STEPS TO UPGRADE NODE
+- Node.js (v14 or higher) for local development
+- Docker and Docker Compose (for containerized deployment)
+- A device to scan WhatsApp QR code
 
-### Windows
+### Installation
 
-#### Manual
-Just get the latest LTS from the [official node website][nodejs].
+#### Using Docker (Recommended)
 
-#### npm
-```powershell
-sudo npm install -g n
-sudo n stable
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SheldonBakker/whatsapp-api.git
+   cd whatsapp-api
+   ```
+
+2. Configure environment variables (see Configuration section below):
+   ```bash
+   cp .env.example .env
+   # Edit .env file with your preferred settings
+   ```
+
+3. Run with Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. The API will be available at http://localhost:3000
+
+#### Local Development
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SheldonBakker/whatsapp-api.git
+   cd whatsapp-api
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Configure environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env file with your preferred settings
+   ```
+
+4. Start the server:
+   ```bash
+   npm start
+   ```
+
+## 🔧 Configuration
+
+The application can be configured using environment variables. Create a `.env` file in the root directory or set them in your Docker Compose file.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `3000` |
+| `API_KEY` | Global API key for authentication | None |
+| `BASE_WEBHOOK_URL` | Base URL for webhooks (required) | None |
+| `ENABLE_LOCAL_CALLBACK_EXAMPLE` | Enable example callback (disable in production) | `FALSE` |
+| `MAX_ATTACHMENT_SIZE` | Maximum attachment size in bytes | `10000000` |
+| `SET_MESSAGES_AS_SEEN` | Auto-mark messages as read | `FALSE` |
+| `DISABLED_CALLBACKS` | Prevent sending specific callbacks | None |
+| `ENABLE_SWAGGER_ENDPOINT` | Enable Swagger docs at /api-docs | `TRUE` |
+| `RATE_LIMIT_MAX` | Max requests per time frame | `1000` |
+| `RATE_LIMIT_WINDOW_MS` | Rate limit window in milliseconds | `1000` |
+| `WEB_VERSION` | WhatsApp Web version | `2.2328.5` |
+| `WEB_VERSION_CACHE_TYPE` | Source for WhatsApp Web version | `none` |
+| `RECOVER_SESSIONS` | Recover session on page failure | `TRUE` |
+| `SESSIONS_PATH` | Path to store session files | `./sessions` |
+
+## 📖 Usage
+
+### Creating a Session
+
+To use this API, you first need to create a WhatsApp session:
+
+1. Make a GET request to `/session/start/{sessionId}` where `sessionId` is a unique identifier for your session
+2. Get the QR code by requesting `/session/qr/{sessionId}/image`
+3. Scan the QR code with your WhatsApp mobile app
+4. Check session status with `/session/status/{sessionId}`
+
+### Sending a Message
+
+Once your session is connected, you can send a message:
+
+```http
+POST /client/sendMessage/{sessionId}
+Content-Type: application/json
+x-api-key: your-api-key
+
+{
+  "chatId": "123456789@c.us",
+  "contentType": "string",
+  "content": "Hello from WhatsApp API!"
+}
 ```
 
-#### Choco
-```powershell
-choco install nodejs-lts
+### API Documentation
+
+When the server is running, you can access the full Swagger documentation at:
+http://localhost:3000/api-docs
+
+## 📊 Available Endpoints
+
+The API provides endpoints for various WhatsApp functionalities:
+
+### Session Management
+- Create, check status, and terminate sessions
+- Get QR code for authentication
+
+### Messaging
+- Send text messages
+- Send media (images, documents, audio)
+- Send location, buttons, lists, contacts, polls
+- Delete messages
+
+### Chats
+- Get chat information
+- Clear messages
+- Delete chats
+- Fetch messages
+
+### Groups
+- Create and manage groups
+- Add/remove participants
+- Promote/demote admins
+- Set group info and picture
+
+### Contacts
+- Get contact information
+- Block/unblock contacts
+- Get profile pictures
+
+## 🧰 Examples
+
+### Sending an Image
+
+```http
+POST /client/sendMessage/{sessionId}
+Content-Type: application/json
+x-api-key: your-api-key
+
+{
+  "chatId": "123456789@c.us",
+  "contentType": "MessageMedia",
+  "content": {
+    "mimetype": "image/jpeg",
+    "data": "base64-encoded-data",
+    "filename": "image.jpg"
+  }
+}
 ```
 
-#### Winget
-```powershell
-winget install OpenJS.NodeJS.LTS
+### Creating a Group
+
+```http
+POST /group/create/{sessionId}
+Content-Type: application/json
+x-api-key: your-api-key
+
+{
+  "name": "My Group",
+  "participants": ["123456789@c.us", "987654321@c.us"]
+}
 ```
 
-### Ubuntu / Debian
-```bash
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - &&\
-sudo apt-get install -y nodejs
-```
+## 📱 Webhook Integration
 
-## Example usage
+This API can send webhooks for various WhatsApp events. Configure the `BASE_WEBHOOK_URL` environment variable to receive notifications about:
+- New messages
+- Status changes
+- QR code refreshes
+- Session updates
+- And more
 
-```js
-const { Client } = require('whatsapp-web.js');
+## 🛠️ Contributing
 
-const client = new Client();
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-client.on('qr', (qr) => {
-    // Generate and scan this code with your phone
-    console.log('QR RECEIVED', qr);
-});
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-client.on('ready', () => {
-    console.log('Client is ready!');
-});
+## 📄 License
 
-client.on('message', msg => {
-    if (msg.body == '!ping') {
-        msg.reply('pong');
-    }
-});
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-client.initialize();
-```
+## 🙏 Acknowledgements
 
-Take a look at [example.js][examples] for another examples with additional use cases.  
-For further details on saving and restoring sessions, explore the provided [Authentication Strategies][auth-strategies].
-
-
-## Supported features
-
-| Feature  | Status |
-| ------------- | ------------- |
-| Multi Device  | ✅  |
-| Send messages  | ✅  |
-| Receive messages  | ✅  |
-| Send media (images/audio/documents)  | ✅  |
-| Send media (video)  | ✅ [(requires Google Chrome)][google-chrome]  |
-| Send stickers | ✅ |
-| Receive media (images/audio/video/documents)  | ✅  |
-| Send contact cards | ✅ |
-| Send location | ✅ |
-| Send buttons | ❌  [(DEPRECATED)][deprecated-video] |
-| Send lists | ❌  [(DEPRECATED)][deprecated-video] |
-| Receive location | ✅ | 
-| Message replies | ✅ |
-| Join groups by invite  | ✅ |
-| Get invite for group  | ✅ |
-| Modify group info (subject, description)  | ✅  |
-| Modify group settings (send messages, edit info)  | ✅  |
-| Add group participants  | ✅  |
-| Kick group participants  | ✅  |
-| Promote/demote group participants | ✅ |
-| Mention users | ✅ |
-| Mention groups | ✅ |
-| Mute/unmute chats | ✅ |
-| Block/unblock contacts | ✅ |
-| Get contact info | ✅ |
-| Get profile pictures | ✅ |
-| Set user status message | ✅ |
-| React to messages | ✅ |
-| Create polls | ✅ |
-| Vote in polls | 🔜 |
-| Communities | 🔜 |
-| Channels | 🔜 |
-
-Something missing? Make an issue and let us know!
-
-## Contributing
-
-Feel free to open pull requests; we welcome contributions! However, for significant changes, it's best to open an issue beforehand. Make sure to review our [contribution guidelines][contributing] before creating a pull request. Before creating your own issue or pull request, always check to see if one already exists!
-
-## Supporting the project
-
-You can support the maintainer of this project through the links below
-
-- [Support via GitHub Sponsors][gitHub-sponsors]
-- [Support via PayPal][support-payPal]
-- [Sign up for DigitalOcean][digitalocean] and get $200 in credit when you sign up (Referral)
-
-## Disclaimer
-
-This project is not affiliated, associated, authorized, endorsed by, or in any way officially connected with WhatsApp or any of its subsidiaries or its affiliates. The official WhatsApp website can be found at [whatsapp.com][whatsapp]. "WhatsApp" as well as related names, marks, emblems and images are registered trademarks of their respective owners. Also it is not guaranteed you will not be blocked by using this method. WhatsApp does not allow bots or unofficial clients on their platform, so this shouldn't be considered totally safe.
-
-## License
-
-Copyright 2019 Pedro S Lopez  
-
-Licensed under the Apache License, Version 2.0 (the "License");  
-you may not use this project except in compliance with the License.  
-You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0.  
-
-Unless required by applicable law or agreed to in writing, software  
-distributed under the License is distributed on an "AS IS" BASIS,  
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  
-See the License for the specific language governing permissions and  
-limitations under the License.  
-
-
-[website]: https://wwebjs.dev
-[guide]: https://guide.wwebjs.dev/guide
-[guide-source]: https://github.com/wwebjs/wwebjs.dev/tree/main
-[documentation]: https://docs.wwebjs.dev/
-[documentation-source]: https://github.com/pedroslopez/whatsapp-web.js/tree/main/docs
-[discord]: https://discord.gg/H7DqQs4
-[gitHub]: https://github.com/pedroslopez/whatsapp-web.js
-[npm]: https://npmjs.org/package/whatsapp-web.js
-[nodejs]: https://nodejs.org/en/download/
-[examples]: https://github.com/pedroslopez/whatsapp-web.js/blob/master/example.js
-[auth-strategies]: https://wwebjs.dev/guide/creating-your-bot/authentication.html
-[google-chrome]: https://wwebjs.dev/guide/creating-your-bot/handling-attachments.html#caveat-for-sending-videos-and-gifs
-[deprecated-video]: https://www.youtube.com/watch?v=hv1R1rLeVVE
-[gitHub-sponsors]: https://github.com/sponsors/pedroslopez
-[support-payPal]: https://www.paypal.me/psla/
-[digitalocean]: https://m.do.co/c/73f906a36ed4
-[contributing]: https://github.com/pedroslopez/whatsapp-web.js/blob/main/CODE_OF_CONDUCT.md
-[whatsapp]: https://whatsapp.com
+- [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) - The amazing library that makes this project possible
+- The open-source community for their continuous support and contributions
