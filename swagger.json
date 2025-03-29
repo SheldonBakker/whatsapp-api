@@ -76,6 +76,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -96,7 +106,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/status/{sessionId}": {
@@ -129,6 +144,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -149,7 +174,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/qr/{sessionId}": {
@@ -175,6 +205,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -195,7 +235,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/qr/{sessionId}/image": {
@@ -224,6 +269,16 @@
               "image/png": {}
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -244,7 +299,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/restart/{sessionId}": {
@@ -277,6 +337,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -297,7 +367,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/terminate/{sessionId}": {
@@ -330,6 +405,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -350,7 +435,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/terminateInactive": {
@@ -371,6 +461,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Server Failure.",
             "content": {
@@ -381,7 +481,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/terminateAll": {
@@ -402,6 +507,16 @@
               }
             }
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "500": {
             "description": "Server Failure.",
             "content": {
@@ -412,7 +527,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/client/getClassInfo/{sessionId}": {
@@ -437,6 +557,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found.",
             "content": {
@@ -457,7 +587,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/client/getNumberId/{sessionId}": {
@@ -482,6 +617,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found.",
             "content": {
@@ -503,6 +648,11 @@
             }
           }
         },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -556,6 +706,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "422": {
             "description": "Unprocessable Entity.",
             "content": {
@@ -566,7 +726,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/client/sendMessage/{sessionId}": {
@@ -591,6 +756,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found.",
             "content": {
@@ -612,6 +787,11 @@
             }
           }
         },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -770,6 +950,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found.",
             "content": {
@@ -790,7 +980,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/message/delete/{sessionId}": {
@@ -815,6 +1010,16 @@
           "200": {
             "description": "OK"
           },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found.",
             "content": {
@@ -836,6 +1041,11 @@
             }
           }
         },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -995,7 +1205,35 @@
         "xml": {
           "name": "NotFoundResponse"
         }
+      },
+      "ForbiddenResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Invalid API key"
+          }
+        },
+        "xml": {
+          "name": "ForbiddenResponse"
+        }
+      }
+    },
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
       }
     }
-  }
+  },
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ]
 }

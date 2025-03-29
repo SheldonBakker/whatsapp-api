@@ -29,22 +29,20 @@ for (const endpoint of keepEndpoints) {
   if (swagger.paths[endpoint]) {
     filteredPaths[endpoint] = swagger.paths[endpoint]
 
-    // For each HTTP method in this endpoint, remove security
+    // For each HTTP method in this endpoint, ensure it uses API Key auth only
     for (const method in filteredPaths[endpoint]) {
-      if (filteredPaths[endpoint][method].security) {
+      // Set security to use API Key auth
+      filteredPaths[endpoint][method].security = [{ apiKeyAuth: [] }]
+
+      // Keep /ping endpoint without authentication
+      if (endpoint === '/ping') {
         delete filteredPaths[endpoint][method].security
       }
 
-      // Remove 403 responses related to authentication
-      if (filteredPaths[endpoint][method].responses &&
-          filteredPaths[endpoint][method].responses['403']) {
-        delete filteredPaths[endpoint][method].responses['403']
-      }
-
-      // Remove parameters related to API key
+      // Only remove parameters that aren't related to API Key auth
       if (filteredPaths[endpoint][method].parameters) {
         filteredPaths[endpoint][method].parameters = filteredPaths[endpoint][method].parameters.filter(
-          param => !(param.name === 'x-api-key' && param.in === 'header')
+          param => !(param.in === 'header' && param.name !== 'x-api-key')
         )
       }
     }
@@ -54,17 +52,32 @@ for (const endpoint of keepEndpoints) {
 // Update the swagger object with the filtered paths
 swagger.paths = filteredPaths
 
-// Remove security schemas from components
+// Ensure only API Key auth is enabled in components
 if (swagger.components && swagger.components.securitySchemes) {
-  delete swagger.components.securitySchemes
+  // Keep only the API Key auth scheme
+  const apiKeyAuth = swagger.components.securitySchemes.apiKeyAuth ||
+                    swagger.components.securitySchemes.ApiKeyAuth
+
+  if (apiKeyAuth) {
+    swagger.components.securitySchemes = {
+      apiKeyAuth
+    }
+  } else {
+    // If no API Key auth scheme exists, create one
+    swagger.components.securitySchemes = {
+      apiKeyAuth: {
+        type: 'apiKey',
+        in: 'header',
+        name: 'x-api-key'
+      }
+    }
+  }
 }
 
-// Remove global security if present
-if (swagger.security) {
-  delete swagger.security
-}
+// Set global security for API Key
+swagger.security = [{ apiKeyAuth: [] }]
 
 // Write the updated swagger object back to the file
 fs.writeFileSync('./swagger.json', JSON.stringify(swagger, null, 2))
 
-console.log('Swagger file updated successfully with only the required endpoints and authentication removed.')
+console.log('Swagger file updated successfully with only the required endpoints and API Key authentication.')
