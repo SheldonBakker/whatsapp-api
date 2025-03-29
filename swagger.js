@@ -13,6 +13,7 @@ const doc = {
       url: 'https://github.com/SheldonBakker/whatsapp-api/issues'
     }
   },
+  servers: [], // Empty array to hide servers section
   securityDefinitions: {
     apiKeyAuth: {
       type: 'apiKey',

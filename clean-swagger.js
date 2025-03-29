@@ -77,7 +77,10 @@ if (swagger.components && swagger.components.securitySchemes) {
 // Set global security for API Key
 swagger.security = [{ apiKeyAuth: [] }]
 
+// Hide servers section by setting it to an empty array
+swagger.servers = []
+
 // Write the updated swagger object back to the file
 fs.writeFileSync('./swagger.json', JSON.stringify(swagger, null, 2))
 
-console.log('Swagger file updated successfully with only the required endpoints and API Key authentication.')
+console.log('Swagger file updated successfully with only the required endpoints, API Key authentication, and hidden servers.')

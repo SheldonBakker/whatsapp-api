@@ -9,11 +9,7 @@
       "url": "https://github.com/SheldonBakker/whatsapp-api/issues"
     }
   },
-  "servers": [
-    {
-      "url": "http://localhost:3000/"
-    }
-  ],
+  "servers": [],
   "tags": [
     {
       "name": "Health",
