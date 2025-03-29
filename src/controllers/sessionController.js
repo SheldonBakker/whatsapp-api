@@ -363,6 +363,105 @@ const terminateAllSessions = async (req, res) => {
   }
 }
 
+/**
+ * Gets all active sessions.
+ *
+ * @function
+ * @async
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @returns {Promise<void>}
+ * @throws {Error} If there was an error retrieving the sessions.
+ */
+const getAllSessions = async (req, res) => {
+  // #swagger.summary = 'Get all sessions'
+  // #swagger.description = 'Returns a list of all active sessions.'
+  try {
+    const sessionsList = []
+    for (const [sessionId, client] of sessions.entries()) {
+      try {
+        let state = 'UNKNOWN'
+        let qrStatus = 'UNAVAILABLE'
+        
+        try {
+          if (client && typeof client.getState === 'function') {
+            state = await client.getState() || 'UNKNOWN'
+          }
+        } catch (err) {
+          state = 'ERROR'
+        }
+        
+        // Check if there's a QR code available
+        if (client.qr) {
+          qrStatus = 'READY_FOR_SCAN'
+          
+          // If state is UNKNOWN and QR is available, it's waiting for scan
+          if (state === 'UNKNOWN') {
+            state = 'DISCONNECTED'
+          }
+        } else if (state === 'CONNECTED') {
+          qrStatus = 'SCANNED_AND_AUTHENTICATED'
+        } else if (client.pupPage && !client.qr) {
+          // Browser is initialized but no QR yet or QR already scanned
+          qrStatus = state === 'UNKNOWN' ? 'INITIALIZING' : 'SCANNED'
+        }
+        
+        sessionsList.push({
+          id: sessionId,
+          state,
+          qrStatus
+        })
+      } catch (error) {
+        console.error(`Error getting state for session ${sessionId}:`, error.message)
+        sessionsList.push({
+          id: sessionId,
+          state: 'ERROR',
+          qrStatus: 'ERROR'
+        })
+      }
+    }
+    
+    /* #swagger.responses[200] = {
+      description: "List of all sessions.",
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              success: { type: "boolean" },
+              sessions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    state: { type: "string" },
+                    qrStatus: { type: "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    */
+    res.json({ success: true, sessions: sessionsList })
+  } catch (error) {
+    /* #swagger.responses[500] = {
+      description: "Server Failure.",
+      content: {
+        "application/json": {
+          schema: { "$ref": "#/definitions/ErrorResponse" }
+        }
+      }
+    }
+    */
+    console.log('getAllSessions ERROR', error)
+    sendErrorResponse(res, 500, error.message)
+  }
+}
+
 module.exports = {
   startSession,
   statusSession,
@@ -371,5 +470,6 @@ module.exports = {
   restartSession,
   terminateSession,
   terminateInactiveSessions,
-  terminateAllSessions
+  terminateAllSessions,
+  getAllSessions
 }

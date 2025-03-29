@@ -15,6 +15,7 @@ const keepEndpoints = [
   '/session/terminate/{sessionId}',
   '/session/terminateInactive',
   '/session/terminateAll',
+  '/session/all',
   '/client/getClassInfo/{sessionId}',
   '/client/getNumberId/{sessionId}',
   '/client/getState/{sessionId}',

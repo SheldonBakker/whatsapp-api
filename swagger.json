@@ -9,7 +9,11 @@
       "url": "https://github.com/SheldonBakker/whatsapp-api/issues"
     }
   },
-  "servers": [],
+  "servers": [
+    {
+      "url": "http://localhost:3000/"
+    }
+  ],
   "tags": [
     {
       "name": "Health",
@@ -40,6 +44,80 @@
             "description": "OK"
           }
         }
+      }
+    },
+    "/callback": {
+      "post": {
+        "tags": [
+          "Health"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "description": "Get detailed health information about the API and system",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
       }
     },
     "/session/start/{sessionId}": {
@@ -499,6 +577,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TerminateSessionsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForbiddenResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server Failure.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKeyAuth": []
+          }
+        ]
+      }
+    },
+    "/session/all": {
+      "get": {
+        "tags": [
+          "Session"
+        ],
+        "summary": "Get all sessions",
+        "description": "Returns a list of all active sessions.",
+        "responses": {
+          "200": {
+            "description": "List of all sessions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -1226,10 +1369,5 @@
         "name": "x-api-key"
       }
     }
-  },
-  "security": [
-    {
-      "apiKeyAuth": []
-    }
-  ]
+  }
 }
