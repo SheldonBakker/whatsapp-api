@@ -13,13 +13,6 @@ const doc = {
       url: 'https://github.com/SheldonBakker/whatsapp-api/issues'
     }
   },
-  securityDefinitions: {
-    apiKeyAuth: {
-      type: 'apiKey',
-      in: 'header',
-      name: 'x-api-key'
-    }
-  },
   produces: ['application/json'],
   tags: [
     {
@@ -68,10 +61,6 @@ const doc = {
     NotFoundResponse: {
       success: false,
       error: 'Resource not found'
-    },
-    ForbiddenResponse: {
-      success: false,
-      error: 'Invalid API key'
     }
   }
 }
