@@ -10,6 +10,7 @@ RUN mkdir -p /usr/src/app/sessions && chmod 777 /usr/src/app/sessions
 # Install Chromium and dependencies required for Puppeteer 24.4.0
 ENV CHROME_BIN="/usr/bin/chromium-browser" \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD="true" \
+    PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium-browser" \
     NODE_ENV="production"
 
 # Install all the dependencies needed for Chromium and Puppeteer
