@@ -1,15 +1,17 @@
+// Load environment variables first
+require('dotenv').config()
+
 const app = require('./src/app')
 const { baseWebhookURL } = require('./src/config')
 const { sessions, flushSessions } = require('./src/sessions')
-require('dotenv').config()
 
 // Start the server
 const port = process.env.PORT || 3000
 
 // Check if BASE_WEBHOOK_URL environment variable is available
 if (!baseWebhookURL) {
-  console.error('BASE_WEBHOOK_URL environment variable is not available. Exiting...')
-  process.exit(1) // Terminate the application with an error code
+  console.warn('WARNING: BASE_WEBHOOK_URL environment variable is not available. Using default http://localhost:3000/callback')
+  process.env.BASE_WEBHOOK_URL = 'http://localhost:3000/callback'
 }
 
 // Create HTTP server

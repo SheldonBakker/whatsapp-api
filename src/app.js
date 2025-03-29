@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config()
+
 require('./routes')
 const { restoreSessions } = require('./sessions')
 const { routes } = require('./routes')

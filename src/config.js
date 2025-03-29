@@ -5,7 +5,7 @@ require('dotenv').config()
 const sessionFolderPath = process.env.SESSIONS_PATH || './sessions'
 const enableCallback = (process.env.ENABLE_CALLBACK || '').toLowerCase() === 'true'
 const globalApiKey = process.env.API_KEY
-const baseWebhookURL = process.env.BASE_WEBHOOK_URL
+const baseWebhookURL = process.env.BASE_WEBHOOK_URL || 'http://localhost:3000/callback'
 const maxAttachmentSize = parseInt(process.env.MAX_ATTACHMENT_SIZE) || 10000000
 const setMessagesAsSeen = (process.env.SET_MESSAGES_AS_SEEN || '').toLowerCase() === 'true'
 const disabledCallbacks = process.env.DISABLED_CALLBACKS ? process.env.DISABLED_CALLBACKS.split('|') : []

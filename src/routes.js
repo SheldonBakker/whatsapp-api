@@ -16,13 +16,15 @@ const messageController = require('./controllers/messageController')
  * ================
  */
 
-// API endpoint to check if server is alive
+// API endpoint to check if server is alive - no API key required
 routes.get('/ping', /* #swagger.tags = ['Health'] */ healthController.ping)
+
 // API basic callback
 if (enableCallback) {
-  routes.post('/CallBack', [middleware.apikey, middleware.rateLimiter], /* #swagger.tags = ['Health'] */ healthController.Callback)
+  routes.post('/callback', [middleware.apikey, middleware.rateLimiter], /* #swagger.tags = ['Health'] */ healthController.Callback)
 }
-// Comprehensive health check endpoint
+
+// Comprehensive health check endpoint - requires API key
 routes.get('/health', [middleware.apikey], /* #swagger.tags = ['Health'] */ healthController.healthCheck)
 
 /**

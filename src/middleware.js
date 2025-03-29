@@ -78,12 +78,25 @@ const apikey = async (req, res, next) => {
       }
   */
   try {
-    if (globalApiKey) {
-      const apiKey = req.headers['x-api-key']
-      if (!apiKey || apiKey !== globalApiKey) {
-        return sendErrorResponse(res, 403, 'Invalid API key')
-      }
+    // Use the API key from the config, which is loaded from .env
+    const apiKeyFromConfig = globalApiKey
+
+    // Ensure API key is set and not empty
+    if (!apiKeyFromConfig || apiKeyFromConfig.trim() === '') {
+      console.error('API key is not configured in environment variables')
+      return sendErrorResponse(res, 500, 'API authentication is not properly configured')
     }
+
+    // Get the API key from the request headers
+    const apiKeyFromRequest = req.headers['x-api-key']
+
+    // Check if the API key is present and matches
+    if (!apiKeyFromRequest || apiKeyFromRequest !== apiKeyFromConfig) {
+      console.log(`Invalid API key attempt: ${apiKeyFromRequest?.substring(0, 8)}...`)
+      return sendErrorResponse(res, 403, 'Invalid API key')
+    }
+
+    // API key is valid, proceed
     next()
   } catch (error) {
     console.error('API key validation error:', error)
