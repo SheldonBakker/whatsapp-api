@@ -439,27 +439,37 @@ const reloadSession = async (sessionId) => {
   try {
     const client = sessions.get(sessionId)
     if (!client) {
-      return
+      throw new Error('Session not found')
     }
-    client.pupPage.removeAllListeners('close')
-    client.pupPage.removeAllListeners('error')
+
+    // Safely remove listeners if pupPage exists
+    if (client.pupPage) {
+      client.pupPage.removeAllListeners('close')
+      client.pupPage.removeAllListeners('error')
+    }
+
     try {
-      const pages = await client.pupBrowser.pages()
-      await Promise.all(pages.map((page) => page.close()))
-      await Promise.race([
-        client.pupBrowser.close(),
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ])
+      // Only try to close pages if browser exists and is connected
+      if (client.pupBrowser && client.pupBrowser.isConnected()) {
+        const pages = await client.pupBrowser.pages()
+        await Promise.all(pages.map((page) => page.close()))
+        await Promise.race([
+          client.pupBrowser.close(),
+          new Promise(resolve => setTimeout(resolve, 5000))
+        ])
+      }
     } catch (e) {
-      const childProcess = client.pupBrowser.process()
+      // If browser close fails, try to force kill the process
+      const childProcess = client.pupBrowser?.process()
       if (childProcess) {
         childProcess.kill(9)
       }
     }
+
     sessions.delete(sessionId)
     setupSession(sessionId)
   } catch (error) {
-    console.log(error)
+    console.log('reloadSession ERROR:', error)
     throw error
   }
 }
