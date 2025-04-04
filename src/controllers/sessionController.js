@@ -382,7 +382,7 @@ const getAllSessions = async (req, res) => {
       try {
         let state = 'UNKNOWN'
         let qrStatus = 'UNAVAILABLE'
-        
+
         try {
           if (client && typeof client.getState === 'function') {
             state = await client.getState() || 'UNKNOWN'
@@ -390,11 +390,11 @@ const getAllSessions = async (req, res) => {
         } catch (err) {
           state = 'ERROR'
         }
-        
+
         // Check if there's a QR code available
         if (client.qr) {
           qrStatus = 'READY_FOR_SCAN'
-          
+
           // If state is UNKNOWN and QR is available, it's waiting for scan
           if (state === 'UNKNOWN') {
             state = 'DISCONNECTED'
@@ -405,7 +405,7 @@ const getAllSessions = async (req, res) => {
           // Browser is initialized but no QR yet or QR already scanned
           qrStatus = state === 'UNKNOWN' ? 'INITIALIZING' : 'SCANNED'
         }
-        
+
         sessionsList.push({
           id: sessionId,
           state,
@@ -420,7 +420,7 @@ const getAllSessions = async (req, res) => {
         })
       }
     }
-    
+
     /* #swagger.responses[200] = {
       description: "List of all sessions.",
       content: {

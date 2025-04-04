@@ -90,13 +90,36 @@ const setupSession = (sessionId) => {
       return { success: false, message: `Session already exists for: ${sessionId}`, client: sessions.get(sessionId) }
     }
 
-    // Disable the delete folder from the logout function (will be handled separately)
-    const localAuth = new LocalAuth({ clientId: sessionId, dataPath: sessionFolderPath })
+    // Create the session directory if it doesn't exist
+    const sessionDir = path.join(sessionFolderPath, `session-${sessionId}`)
+    if (!fs.existsSync(sessionDir)) {
+      fs.mkdirSync(sessionDir, { recursive: true })
+    }
+
+    // Configure local auth with explicit paths
+    const localAuth = new LocalAuth({
+      clientId: sessionId,
+      dataPath: sessionFolderPath,
+      dataUncompressed: true // This helps with session persistence
+    })
     delete localAuth.logout
     localAuth.logout = () => { }
 
     // Configure Chrome args based on optimization setting
-    const baseArgs = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+    const baseArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-web-security'
+    ]
+
+    // Check for custom user agent for this session
+    const customUserAgent = process.env[`${sessionId.toUpperCase()}_USER_AGENT`] ||
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'
 
     // Log if debug mode is enabled
     if (puppeteerDebug) {
@@ -104,24 +127,23 @@ const setupSession = (sessionId) => {
       console.log(`[DEBUG] - Headless mode: ${headlessMode ? 'enabled' : 'disabled'}`)
       console.log(`[DEBUG] - Memory optimization: ${optimizeChromeMemory ? 'disabled for stability' : 'disabled'}`)
       console.log(`[DEBUG] - Chrome executable: ${process.env.CHROME_BIN || 'default'}`)
+      console.log(`[DEBUG] - User agent: ${customUserAgent}`)
     }
 
-    // Create client configuration with reduced customization to avoid connection issues
+    // Create client configuration with enhanced persistence settings
     const clientOptions = {
       puppeteer: {
         headless: headlessMode ? 'new' : false,
-        args: [
-          ...baseArgs,
-          '--disable-web-security',
-          '--no-first-run',
-          '--disable-infobars'
-        ],
+        args: baseArgs,
         ignoreHTTPSErrors: true,
         timeout: 120000,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN
       },
-      userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
-      authStrategy: localAuth
+      userAgent: customUserAgent,
+      authStrategy: localAuth,
+      restartOnAuthFail: true,
+      qrMaxRetries: 5,
+      takeoverOnConflict: false
     }
 
     // Use web version configuration if available
@@ -153,39 +175,78 @@ const setupSession = (sessionId) => {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`Initializing session ${sessionId} (Attempt ${attempt}/${maxRetries})`)
+          // Initialize events before client initialization
+          initializeEvents(client, sessionId)
+          // Initialize the client
           await client.initialize()
           console.log(`Session ${sessionId} initialized successfully`)
+          // Wait for QR code or successful connection
+          await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              clearInterval(qrCheckInterval)
+              reject(new Error('QR code generation timeout'))
+            }, 30000)
+            // Check for QR code every second
+            const qrCheckInterval = setInterval(() => {
+              if (client.qr) {
+                clearTimeout(timeout)
+                clearInterval(qrCheckInterval)
+                resolve()
+              }
+              // Also check if we're already authenticated
+              client.getState().then(state => {
+                if (state === 'CONNECTED') {
+                  clearTimeout(timeout)
+                  clearInterval(qrCheckInterval)
+                  resolve()
+                }
+              })
+            }, 1000)
+            // Handle authentication success
+            client.once('authenticated', () => {
+              clearTimeout(timeout)
+              clearInterval(qrCheckInterval)
+              resolve()
+            })
+            // Handle authentication failure
+            client.once('auth_failure', msg => {
+              clearTimeout(timeout)
+              clearInterval(qrCheckInterval)
+              reject(new Error(`Authentication failed: ${msg}`))
+            })
+          })
           return
         } catch (err) {
           console.error(`Initialization error (Attempt ${attempt}/${maxRetries}):`, err.message)
-
-          // Log more detailed information about the error
           if (err.stack) {
             console.error(`Error stack: ${err.stack}`)
           }
-
-          // Check for specific errors and provide more helpful messages
           if (err.message.includes('Protocol error') || err.message.includes('Target closed')) {
             console.error('Browser connection issue detected. This may be due to Chrome process issues or network problems.')
           } else if (err.message.includes('timeout')) {
             console.error('Connection timeout. Check your network or increase the timeout value.')
           }
-
           if (attempt < maxRetries) {
             console.log(`Retrying in ${delay / 1000} seconds...`)
             await new Promise(resolve => setTimeout(resolve, delay))
           } else {
             console.error(`Failed to initialize session ${sessionId} after ${maxRetries} attempts`)
+            throw err
           }
         }
       }
     }
-
+    
     // Start initialization process
-    initializeWithRetry().catch(err => console.error('Fatal initialization error:', err.message))
-
-    initializeEvents(client, sessionId)
-
+    initializeWithRetry().catch(err => {
+      console.error('Fatal initialization error:', err.message)
+      // Clean up on fatal error
+      if (client.pupBrowser) {
+        client.pupBrowser.close().catch(() => {})
+      }
+      sessions.delete(sessionId)
+    })
+    
     // Save the session to the Map
     sessions.set(sessionId, client)
     return { success: true, message: 'Session initiated successfully', client }
@@ -480,27 +541,50 @@ const deleteSession = async (sessionId, validation) => {
     if (!client) {
       return
     }
-    client.pupPage.removeAllListeners('close')
-    client.pupPage.removeAllListeners('error')
-    if (validation.success) {
-      // Client Connected, request logout
-      console.log(`Logging out session ${sessionId}`)
-      await client.logout()
-    } else if (validation.message === 'session_not_connected') {
-      // Client not Connected, request destroy
-      console.log(`Destroying session ${sessionId}`)
-      await client.destroy()
+
+    // Safely remove event listeners if pupPage exists
+    if (client.pupPage && typeof client.pupPage.removeAllListeners === 'function') {
+      try {
+        client.pupPage.removeAllListeners('close')
+        client.pupPage.removeAllListeners('error')
+      } catch (err) {
+        console.log(`Error removing listeners for session ${sessionId}:`, err.message)
+      }
     }
-    // Wait 10 secs for client.pupBrowser to be disconnected before deleting the folder
-    let maxDelay = 0
-    while (client.pupBrowser.isConnected() && (maxDelay < 10)) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      maxDelay++
+
+    try {
+      if (validation.success) {
+        // Client Connected, request logout
+        console.log(`Logging out session ${sessionId}`)
+        await client.logout()
+      } else if (validation.message === 'session_not_connected') {
+        // Client not Connected, request destroy
+        console.log(`Destroying session ${sessionId}`)
+        await client.destroy()
+      }
+    } catch (err) {
+      console.log(`Error during client logout/destroy for session ${sessionId}:`, err.message)
     }
-    await deleteSessionFolder(sessionId)
+
+    try {
+      // Wait 10 secs for client.pupBrowser to be disconnected before deleting the folder
+      if (client.pupBrowser && typeof client.pupBrowser.isConnected === 'function') {
+        let maxDelay = 0
+        while (client.pupBrowser.isConnected() && (maxDelay < 10)) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          maxDelay++
+        }
+      }
+
+      await deleteSessionFolder(sessionId)
+    } catch (err) {
+      console.log(`Error during folder deletion for session ${sessionId}:`, err.message)
+    }
+
     sessions.delete(sessionId)
+    console.log(`Session ${sessionId} terminated successfully`)
   } catch (error) {
-    console.log(error)
+    console.log(`Error terminating session ${sessionId}:`, error)
     throw error
   }
 }

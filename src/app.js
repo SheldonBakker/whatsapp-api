@@ -7,6 +7,7 @@ const { routes } = require('./routes')
 const app = require('express')()
 const bodyParser = require('body-parser')
 const { maxAttachmentSize } = require('./config')
+const { ensureDirectories } = require('./utils/ensureDirectories')
 
 // Request logger middleware
 const requestLogger = (req, res, next) => {
@@ -96,6 +97,7 @@ app.use(bodyParser.json({ limit: maxAttachmentSize + 1000000 }))
 app.use(bodyParser.urlencoded({ limit: maxAttachmentSize + 1000000, extended: true }))
 app.use('/', routes)
 
+ensureDirectories()
 restoreSessions()
 
 module.exports = app

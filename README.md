@@ -204,3 +204,79 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) - The amazing library that makes this project possible
 - The open-source community for their continuous support and contributions
+
+## Features
+
+- Multiple independent WhatsApp sessions
+- Webhook notifications for various events (messages, status changes, etc.)
+- Media handling (send and receive images, documents, etc.)
+- Group management
+- Session persistence between server restarts
+- Customizable per-session configurations
+
+## Setting up Multiple Sessions
+
+Each session can be customized with its own user agent and webhook URL:
+
+### Configure via Environment Variables
+
+Add these to your `.env` file:
+
+```
+# Custom user agent for a session named "session1"
+SESSION1_USER_AGENT=Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1
+
+# Custom webhook for a session
+SESSION1_WEBHOOK_URL=http://localhost:8080/session1-webhook
+```
+
+### Create a New Session
+
+```bash
+curl -X POST "http://localhost:3000/api/session/session1/start" -H "x-api-key: YOUR_API_KEY"
+```
+
+### Get QR Code for Authentication
+
+```bash
+curl -X GET "http://localhost:3000/api/session/session1/qr" -H "x-api-key: YOUR_API_KEY"
+```
+
+Or visit `http://localhost:3000/api/session/session1/qr-scan` in your browser to scan the QR code.
+
+### Check Session Status
+
+```bash
+curl -X GET "http://localhost:3000/api/session/session1/status" -H "x-api-key: YOUR_API_KEY"
+```
+
+### List All Sessions
+
+```bash
+curl -X GET "http://localhost:3000/api/sessions" -H "x-api-key: YOUR_API_KEY"
+```
+
+### Terminate a Session
+
+```bash
+curl -X DELETE "http://localhost:3000/api/session/session1" -H "x-api-key: YOUR_API_KEY"
+```
+
+## Session Persistence
+
+Sessions are automatically restored when the server restarts. Each session maintains its own data and authentication state independently.
+
+## Troubleshooting
+
+If you encounter issues with sessions not persisting between restarts:
+
+1. Ensure the `.cache/puppeteer` directory exists and is writable
+2. Check if the `sessions` directory contains session data
+3. Verify that the environment variables are set correctly
+4. Restart the server with `npm start`
+
+If a session gets stuck, you can restart it:
+
+```bash
+curl -X PUT "http://localhost:3000/api/session/session1/restart" -H "x-api-key: YOUR_API_KEY"
+```
