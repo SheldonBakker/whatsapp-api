@@ -5,23 +5,8 @@ services:
     restart: always
     ports:
       - "3000:3000"
-    environment:
-      - PORT=3000  # API port
-      - API_KEY=0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2  # Global API key
-      - BASE_WEBHOOK_URL=http://localhost/callback  # Required for WhatsApp events
-      - ENABLE_CALLBACK=TRUE  # Disable example callback for production
-      - MAX_ATTACHMENT_SIZE=10000000  # 10MB max attachment size
-      - SET_MESSAGES_AS_SEEN=FALSE  # Don't auto-mark messages as read
-      - DISABLED_CALLBACKS=message_ack|message_reaction|unread_count|message_edit|message_ciphertext
-      - ENABLE_SWAGGER_ENDPOINT=TRUE  # Enable API documentation
-      - RATE_LIMIT_MAX=1000  # Rate limiting configuration
-      - RATE_LIMIT_WINDOW_MS=1000
-      - RECOVER_SESSIONS=TRUE  # Auto recover failed sessions
-      - OPTIMIZE_CHROME_MEMORY=FALSE  # Disable memory optimization for stability
-      - HEADLESS_MODE=TRUE  # Run Chrome in headless mode
-      - PUPPETEER_DEBUG=FALSE  # Disable puppeteer debugging in production
-      - CHROME_BIN=/usr/bin/chromium-browser  # Explicitly set Chrome binary path
-      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser  # Explicitly set Puppeteer executable path
+    env_file:
+      - .env  # Use environment variables from .env file
     volumes:
       - ./sessions:/usr/src/app/sessions  # Persist sessions between container restarts
     healthcheck:  # Add healthcheck to ensure container is running properly
