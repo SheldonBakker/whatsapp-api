@@ -31,9 +31,9 @@ This document provides instructions for running the WhatsApp API using Docker wi
    docker-compose up -d
    ```
 
-4. The API will be available at http://localhost:3000
+4. The API will be available at http://localhost:5656
 
-5. Access the Swagger documentation at http://localhost:3000/api-docs
+5. Access the Swagger documentation at http://localhost:5656/api-docs
 
 ## Configuration
 
@@ -46,9 +46,9 @@ You can configure the application by:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PORT` | Server port | `3000` |
+| `PORT` | Server port | `5656` |
 | `API_KEY` | Global API key for authentication | Sample key (change in production) |
-| `BASE_WEBHOOK_URL` | Base URL for webhooks | `http://localhost:3000/callback` |
+| `BASE_WEBHOOK_URL` | Base URL for webhooks | `http://host.docker.internal:5656/callback` |
 | `CHROME_HEADLESS` | Run Chrome in headless mode | `TRUE` |
 | `SESSIONS_PATH` | Path to store session files | `./sessions` |
 
@@ -84,19 +84,19 @@ You can run multiple WhatsApp sessions simultaneously:
 
 1. Create a new session:
    ```bash
-   curl -X POST "http://localhost:3000/api/session/session1/start" -H "x-api-key: YOUR_API_KEY"
+   curl -X POST "http://localhost:5656/api/session/session1/start" -H "x-api-key: YOUR_API_KEY"
    ```
 
 2. Get the QR code to scan:
    ```bash
-   curl -X GET "http://localhost:3000/api/session/session1/qr" -H "x-api-key: YOUR_API_KEY"
+   curl -X GET "http://localhost:5656/api/session/session1/qr" -H "x-api-key: YOUR_API_KEY"
    ```
 
-   Or visit `http://localhost:3000/api/session/session1/qr-scan` in your browser.
+   Or visit `http://localhost:5656/api/session/session1/qr-scan` in your browser.
 
 3. Check session status:
    ```bash
-   curl -X GET "http://localhost:3000/api/session/session1/status" -H "x-api-key: YOUR_API_KEY"
+   curl -X GET "http://localhost:5656/api/session/session1/status" -H "x-api-key: YOUR_API_KEY"
    ```
 
 ## Accessing the API from Local Network
@@ -118,7 +118,7 @@ To access the API from another device on your network:
 
 2. Use this IP address to access the API from other devices:
    ```
-   http://YOUR_HOST_IP:3000
+   http://YOUR_HOST_IP:5656
    ```
 
 3. For webhook callbacks, you may need to update the `BASE_WEBHOOK_URL` in your `.env` file to use your host machine's IP instead of `localhost` or `host.docker.internal`.
