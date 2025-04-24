@@ -8,7 +8,7 @@ services:
     container_name: whatsapp-api
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3000:3000"
     volumes:
       - ./sessions:/usr/src/app/sessions
       - ./.wwebjs_auth:/usr/src/app/.wwebjs_auth
@@ -16,7 +16,7 @@ services:
     environment:
       - PORT=3000
       - API_KEY=${API_KEY:-0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2}
-      - BASE_WEBHOOK_URL=${BASE_WEBHOOK_URL:-http://localhost:3000/callback}
+      - BASE_WEBHOOK_URL=${BASE_WEBHOOK_URL:-http://host.docker.internal:3000/callback}
       - ENABLE_LOCAL_CALLBACK_EXAMPLE=${ENABLE_LOCAL_CALLBACK_EXAMPLE:-TRUE}
       - MAX_ATTACHMENT_SIZE=${MAX_ATTACHMENT_SIZE:-10000000}
       - SET_MESSAGES_AS_SEEN=${SET_MESSAGES_AS_SEEN:-TRUE}

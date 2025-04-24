@@ -99,6 +99,30 @@ You can run multiple WhatsApp sessions simultaneously:
    curl -X GET "http://localhost:3000/api/session/session1/status" -H "x-api-key: YOUR_API_KEY"
    ```
 
+## Accessing the API from Local Network
+
+By default, the Docker Compose configuration binds the API to all network interfaces (`0.0.0.0`), making it accessible from other devices on your local network.
+
+To access the API from another device on your network:
+
+1. Find your host machine's IP address:
+   ```bash
+   # On Windows
+   ipconfig
+
+   # On Linux/Mac
+   ifconfig
+   # or
+   ip addr show
+   ```
+
+2. Use this IP address to access the API from other devices:
+   ```
+   http://YOUR_HOST_IP:3000
+   ```
+
+3. For webhook callbacks, you may need to update the `BASE_WEBHOOK_URL` in your `.env` file to use your host machine's IP instead of `localhost` or `host.docker.internal`.
+
 ## Troubleshooting
 
 ### QR Code Not Displaying
