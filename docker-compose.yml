@@ -9,10 +9,11 @@ services:
     restart: unless-stopped
     ports:
       - "0.0.0.0:5656:5656"
+    # These volumes persist your session data even when containers are stopped
     volumes:
-      - ./sessions:/usr/src/app/sessions
-      - ./.wwebjs_auth:/usr/src/app/.wwebjs_auth
-      - ./.cache:/usr/src/app/.cache
+      - ./sessions:/usr/src/app/sessions       # WhatsApp session data (PERSISTENT)
+      - ./.wwebjs_auth:/usr/src/app/.wwebjs_auth  # WhatsApp auth data & Chrome profiles (PERSISTENT)
+      - ./.cache:/usr/src/app/.cache           # Cache data (PERSISTENT)
     environment:
       - PORT=5656
       - API_KEY=${API_KEY:-0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2}
@@ -29,10 +30,12 @@ services:
       - RECOVER_SESSIONS=${RECOVER_SESSIONS:-TRUE}
       - CHROME_HEADLESS=${CHROME_HEADLESS:-TRUE}
       - SESSIONS_PATH=${SESSIONS_PATH:-./sessions}
-    # For non-headless mode (visible browser), you need to add these capabilities
-    # Uncomment the following lines if you need to run in non-headless mode
-    # cap_add:
-    #   - SYS_ADMIN
-    # devices:
-    #   - /dev/snd:/dev/snd
-    #   - /dev/dri:/dev/dri
+    # Add capabilities needed for Chrome/Puppeteer to work properly in Docker
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - seccomp=unconfined
+    shm_size: 1gb
+
+# No additional volumes needed
+

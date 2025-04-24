@@ -385,14 +385,19 @@ const reloadSession = async (sessionId) => {
 }
 
 // --- Function to delete session (logout/destroy + remove folder) ---
-const deleteSession = async (sessionId) => {
-  const logContext = { sessionId }
+const deleteSession = async (sessionId, preserveData = false) => {
+  const logContext = { sessionId, preserveData }
   logger.info('Deletion requested', logContext)
   const client = sessions.get(sessionId)
   const validation = await validateSession(sessionId) // Validate before proceeding
 
   if (!client && validation.message === 'session_not_found_in_memory') {
-    logger.info('Session not found in memory. Attempting folder deletion only.', logContext)
+    if (preserveData) {
+      logger.info('Session not found in memory. Preserving folder as requested.', logContext)
+      return // Skip folder deletion when preserveData is true
+    }
+
+    logger.info('Session not found in memory. Attempting folder deletion.', logContext)
     try {
       await deleteSessionFolder(sessionId)
     } catch (folderErr) {
@@ -402,16 +407,21 @@ const deleteSession = async (sessionId) => {
   }
 
   if (!client) {
-    logger.error(`Cannot delete session: Not found (State: ${validation.message}). Folder deletion might be needed manually.`, { ...logContext, validation })
+    logger.error(`Cannot delete session: Not found (State: ${validation.message}).`, { ...logContext, validation })
     return // Cannot proceed without client object
   }
 
   // Prevent double deletion / race conditions
   if (client._destroyed) {
-    logger.warn('Session already marked as destroyed. Skipping client operations, ensuring removal.', logContext)
+    logger.warn('Session already marked as destroyed. Skipping client operations.', logContext)
     sessions.delete(sessionId) // Ensure removal from map
     await safeKillBrowser(client) // Attempt kill just in case
-    await deleteSessionFolder(sessionId).catch(e => logger.error(`Error deleting folder for already-destroyed session: ${e.message}`, { ...logContext, error: e }))
+
+    if (!preserveData) {
+      await deleteSessionFolder(sessionId).catch(e => logger.error(`Error deleting folder for already-destroyed session: ${e.message}`, { ...logContext, error: e }))
+    } else {
+      logger.info('Preserving session data folder as requested.', logContext)
+    }
     return
   }
 
@@ -466,11 +476,14 @@ const deleteSession = async (sessionId) => {
     logger.info('Ensuring browser process is terminated...', logContext)
     await safeKillBrowser(client)
 
-    // Finally, delete the session folder
-    logger.info('Deleting session data folder...', logContext)
-    await deleteSessionFolder(sessionId)
-
-    logger.info('Session terminated and data cleaned successfully.', logContext)
+    // Delete the session folder only if not preserving data
+    if (!preserveData) {
+      logger.info('Deleting session data folder...', logContext)
+      await deleteSessionFolder(sessionId)
+      logger.info('Session terminated and data cleaned successfully.', logContext)
+    } else {
+      logger.info('Session terminated. Session data preserved as requested.', logContext)
+    }
   } catch (error) {
     logger.error(`Error during termination/cleanup: ${error.message}`, { ...logContext, error })
     await safeKillBrowser(client) // Ensure browser kill is attempted
@@ -485,8 +498,8 @@ const deleteSession = async (sessionId) => {
 }
 
 // --- Function to handle session flush ---
-const flushSessions = async (deleteOnlyInactive) => {
-  logger.info(`Starting flush process. Delete only inactive: ${deleteOnlyInactive}`)
+const flushSessions = async (deleteOnlyInactive, preserveData = false) => {
+  logger.info(`Starting flush process. Delete only inactive: ${deleteOnlyInactive}, Preserve data: ${preserveData}`)
   try {
     // Get session IDs from the folder structure first
     const sessionFolders = new Set()
@@ -523,31 +536,31 @@ const flushSessions = async (deleteOnlyInactive) => {
 
     let deletedCount = 0
     for (const sessionId of allSessionIds) {
-      const logContext = { sessionId }
+      const logContext = { sessionId, preserveData }
       logger.info('Processing session ID for flush', logContext)
       const validation = await validateSession(sessionId) // Check current state
 
       let shouldDelete = false
       if (!deleteOnlyInactive) {
         shouldDelete = true
-        logger.info('Deleting session (flush all).', logContext)
+        logger.info(`${preserveData ? 'Closing' : 'Deleting'} session (flush all).`, logContext)
       } else if (!validation.success || validation.state !== 'CONNECTED') {
         shouldDelete = true
-        logger.info(`Deleting inactive session (State: ${validation.state || 'Unknown'}, Success: ${validation.success}).`, { ...logContext, validation })
+        logger.info(`${preserveData ? 'Closing' : 'Deleting'} inactive session (State: ${validation.state || 'Unknown'}, Success: ${validation.success}).`, { ...logContext, validation })
       } else {
         logger.info('Skipping active session.', logContext)
       }
 
       if (shouldDelete) {
         try {
-          await deleteSession(sessionId) // Use the robust delete function
+          await deleteSession(sessionId, preserveData) // Pass preserveData flag to deleteSession
           deletedCount++
         } catch (deleteErr) {
-          logger.error(`Failed to delete session during flush: ${deleteErr.message}`, { ...logContext, error: deleteErr })
+          logger.error(`Failed to ${preserveData ? 'close' : 'delete'} session during flush: ${deleteErr.message}`, { ...logContext, error: deleteErr })
         }
       }
     }
-    logger.info(`Flush process completed. Deleted ${deletedCount} sessions.`)
+    logger.info(`Flush process completed. ${preserveData ? 'Closed' : 'Deleted'} ${deletedCount} sessions.`)
   } catch (error) {
     logger.error(`An error occurred during the flush process: ${error.message}`, { error })
     throw error // Rethrow to indicate failure

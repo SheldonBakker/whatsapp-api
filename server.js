@@ -32,11 +32,29 @@ const gracefulShutdown = async (signal) => {
     // Log active sessions before shutdown
     console.log(`Active sessions before shutdown: ${sessions.size}`)
 
-    // Save all sessions state
+    // Check if this is a Docker shutdown (SIGTERM) - if so, preserve sessions
+    const isDockerShutdown = signal === 'SIGTERM'
+
     if (sessions.size > 0) {
-      console.log('Closing all active WhatsApp sessions...')
-      await flushSessions(false)
-      console.log('All sessions terminated.')
+      if (isDockerShutdown) {
+        console.log('Docker shutdown detected. Preserving all WhatsApp sessions...')
+        // Just close browsers without deleting sessions
+        for (const [sessionId, client] of sessions.entries()) {
+          if (client && client.pupBrowser) {
+            try {
+              await client.pupBrowser.close().catch(() => {})
+              console.log(`Browser closed for session: ${sessionId}`)
+            } catch (err) {
+              console.error(`Error closing browser for session ${sessionId}:`, err)
+            }
+          }
+        }
+        console.log('All browsers closed. Sessions preserved for next startup.')
+      } else {
+        console.log('Closing all active WhatsApp sessions...')
+        await flushSessions(false)
+        console.log('All sessions terminated.')
+      }
     }
 
     console.log('Graceful shutdown completed.')
