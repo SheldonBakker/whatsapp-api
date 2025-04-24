@@ -1,67 +1,67 @@
+const Joi = require('joi');
 const { globalApiKey, rateLimitMax, rateLimitWindowMs } = require('./config')
 const { sendErrorResponse } = require('./utils')
 const { validateSession } = require('./sessions')
 const rateLimiting = require('express-rate-limit')
+const { logger } = require('./utils/logger') // Import logger
+// Import schemas (assuming they are exported correctly)
+// const schemas = require('./utils/validationSchemas'); // Adjust path if needed
 
-// Request validation middleware
-const validateRequest = (requiredFields) => {
-  return (req, res, next) => {
-    const missingFields = []
+// --- Generic Joi Validation Middleware ---
+const validate = (schema, property = 'body') => {
+  return async (req, res, next) => {
+    const dataToValidate = req[property];
+    const options = {
+      abortEarly: false, // Return all errors
+      allowUnknown: true, // Allow properties not defined in schema (can be adjusted)
+      stripUnknown: false // Do not remove unknown properties (can be adjusted)
+    };
 
-    for (const field of requiredFields) {
-      // Handle nested fields with dot notation (e.g., 'user.name')
-      const parts = field.split('.')
-      let value = req.body
+    try {
+      await schema.validateAsync(dataToValidate, options);
+      next(); // Validation successful
+    } catch (error) {
+      // Log the validation error with details
+      const reqLogger = req.logger || logger; // Use request-specific logger if available
+      const errorDetails = error.details.map(detail => ({
+        message: detail.message,
+        path: detail.path,
+        type: detail.type
+      }));
+      reqLogger.warn(`Validation Error (${property}): ${error.message}`, {
+        validationProperty: property,
+        validationErrors: errorDetails,
+        requestData: dataToValidate // Be cautious logging sensitive data
+      });
 
-      for (const part of parts) {
-        value = value && value[part]
-        if (value === undefined || value === null) {
-          missingFields.push(field)
-          break
-        }
-      }
+      // Determine appropriate status code (400 for general bad input, 422 if syntactically correct but semantically wrong)
+      const statusCode = (property === 'body' || property === 'query') ? 400 : 422; // Example logic
+
+      // Send detailed error response (consider simplifying for production)
+      return sendErrorResponse(res, statusCode, 'Validation failed', { errors: errorDetails });
     }
+  };
+};
 
-    if (missingFields.length > 0) {
-      return sendErrorResponse(res, 400, `Missing required fields: ${missingFields.join(', ')}`)
-    }
 
-    next()
-  }
-}
-
-// JSON payload size validation
+// JSON payload size validation (Keep as is, Joi doesn't handle raw size)
 const validatePayloadSize = (maxSize = 50 * 1024 * 1024) => { // Default 50MB
   return (req, res, next) => {
-    if (req.headers['content-length'] > maxSize) {
-      return sendErrorResponse(res, 413, 'Payload too large')
+    const reqLogger = req.logger || logger;
+    const contentLength = parseInt(req.headers['content-length'], 10);
+    if (contentLength > maxSize) {
+      reqLogger.warn(`Payload too large: ${contentLength} bytes (Max: ${maxSize})`, {
+        contentLength,
+        maxSize,
+        url: req.originalUrl
+      });
+      return sendErrorResponse(res, 413, 'Payload too large');
     }
-    next()
-  }
-}
+    next();
+  };
+};
 
-// Sanitize content type
-const sanitizeContentType = () => {
-  return (req, res, next) => {
-    // Sanitize contentType for sendMessage endpoint
-    if (req.body && req.body.contentType) {
-      const validContentTypes = [
-        'string', 'MessageMedia', 'MessageMediaFromURL',
-        'Location', 'Buttons', 'List', 'Contact', 'Poll'
-      ]
-
-      if (!validContentTypes.includes(req.body.contentType)) {
-        return sendErrorResponse(
-          res,
-          400,
-          `Invalid contentType. Must be one of: ${validContentTypes.join(', ')}`
-        )
-      }
-    }
-    next()
-  }
-}
-
+// API Key Validation (Keep as is, specific logic)
 const apikey = async (req, res, next) => {
   /*
     #swagger.security = [{
@@ -81,10 +81,11 @@ const apikey = async (req, res, next) => {
     // Use the API key from the config, which is loaded from .env
     const apiKeyFromConfig = globalApiKey
 
+    const reqLogger = req.logger || logger;
     // Ensure API key is set and not empty
     if (!apiKeyFromConfig || apiKeyFromConfig.trim() === '') {
-      console.error('API key is not configured in environment variables')
-      return sendErrorResponse(res, 500, 'API authentication is not properly configured')
+      reqLogger.error('API key is not configured in environment variables');
+      return sendErrorResponse(res, 500, 'API authentication is not properly configured');
     }
 
     // Get the API key from the request headers
@@ -92,45 +93,22 @@ const apikey = async (req, res, next) => {
 
     // Check if the API key is present and matches
     if (!apiKeyFromRequest || apiKeyFromRequest !== apiKeyFromConfig) {
-      console.log(`Invalid API key attempt: ${apiKeyFromRequest?.substring(0, 8)}...`)
-      return sendErrorResponse(res, 403, 'Invalid API key')
+      reqLogger.warn(`Invalid API key attempt`, { providedKeyStart: apiKeyFromRequest?.substring(0, 8) });
+      return sendErrorResponse(res, 403, 'Invalid API key');
     }
 
     // API key is valid, proceed
     next()
   } catch (error) {
-    console.error('API key validation error:', error)
+    const reqLogger = req.logger || logger;
+    reqLogger.error(`API key validation error: ${error.message}`, { error });
     if (!res.headersSent) {
-      return sendErrorResponse(res, 500, 'Internal server error during authentication')
+      return sendErrorResponse(res, 500, 'Internal server error during authentication');
     }
   }
-}
+};
 
-const sessionNameValidation = async (req, res, next) => {
-  /*
-    #swagger.parameters['sessionId'] = {
-      in: 'path',
-      description: 'Unique identifier for the session (alphanumeric and - allowed)',
-      required: true,
-      type: 'string',
-      example: 'f8377d8d-a589-4242-9ba6-9486a04ef80c'
-    }
-  */
-  if ((!/^[\w-]+$/.test(req.params.sessionId))) {
-    /* #swagger.responses[422] = {
-        description: "Unprocessable Entity.",
-        content: {
-          "application/json": {
-            schema: { "$ref": "#/definitions/ErrorResponse" }
-          }
-        }
-      }
-    */
-    return sendErrorResponse(res, 422, 'Session should be alphanumerical or -')
-  }
-  next()
-}
-
+// Session Exists/Ready Validation (Keep as is, uses custom logic)
 const sessionValidation = async (req, res, next) => {
   try {
     const validation = await validateSession(req.params.sessionId)
@@ -148,9 +126,10 @@ const sessionValidation = async (req, res, next) => {
     }
     next()
   } catch (error) {
-    console.error('Session validation error:', error)
+    const reqLogger = req.logger || logger;
+    reqLogger.error(`Session validation error: ${error.message}`, { sessionId: req.params?.sessionId, error });
     if (!res.headersSent) {
-      return sendErrorResponse(res, 500, 'Error validating session')
+      return sendErrorResponse(res, 500, 'Error validating session');
     }
   }
 }
@@ -241,16 +220,16 @@ const chatSwagger = async (req, res, next) => {
 }
 
 module.exports = {
-  sessionValidation,
-  apikey,
-  sessionNameValidation,
+  validate, // Export the new generic validator
+  validatePayloadSize, // Keep payload size validator
+  sessionValidation, // Keep custom session readiness validator
+  apikey, // Keep API key validator
+  rateLimiter, // Keep rate limiter
+  // --- Swagger middlewares (keep as is) ---
   sessionSwagger,
   clientSwagger,
   contactSwagger,
   messageSwagger,
-  chatSwagger,
-  rateLimiter,
-  validateRequest,
-  validatePayloadSize,
-  sanitizeContentType
-}
+  chatSwagger
+  // Removed: validateRequest, sanitizeContentType, sessionNameValidation (replaced by 'validate')
+};

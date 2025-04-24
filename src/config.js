@@ -16,7 +16,10 @@ const rateLimitMax = process.env.RATE_LIMIT_MAX || 1000
 const rateLimitWindowMs = process.env.RATE_LIMIT_WINDOW_MS || 1000
 const recoverSessions = (process.env.RECOVER_SESSIONS || '').toLowerCase() === 'true'
 const optimizeChromeMemory = (process.env.OPTIMIZE_CHROME_MEMORY || '').toLowerCase() === 'true'
-const headlessMode = (process.env.HEADLESS_MODE || '').toLowerCase() === 'true'
+// Use CHROME_HEADLESS if available, otherwise fall back to HEADLESS_MODE
+const chromeHeadless = process.env.CHROME_HEADLESS !== undefined
+  ? (process.env.CHROME_HEADLESS || '').toLowerCase() === 'true'
+  : (process.env.HEADLESS_MODE || '').toLowerCase() === 'true'
 const puppeteerDebug = (process.env.PUPPETEER_DEBUG || '').toLowerCase() === 'true'
 
 // Enable puppeteer debugging if configured
@@ -39,6 +42,6 @@ module.exports = {
   rateLimitWindowMs,
   recoverSessions,
   optimizeChromeMemory,
-  headlessMode,
+  chromeHeadless,
   puppeteerDebug
 }

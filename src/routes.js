@@ -5,6 +5,8 @@ const swaggerDocument = require('../swagger.json')
 const { enableCallback, enableSwaggerEndpoint } = require('./config')
 
 const middleware = require('./middleware')
+const { validate } = require('./middleware') // Import the new validate function
+const schemas = require('./utils/validationSchemas') // Import validation schemas
 const healthController = require('./controllers/healthController')
 const sessionController = require('./controllers/sessionController')
 const clientController = require('./controllers/clientController')
@@ -37,15 +39,18 @@ sessionRouter.use(middleware.apikey)
 sessionRouter.use(middleware.sessionSwagger)
 routes.use('/session', sessionRouter)
 
-sessionRouter.get('/start/:sessionId', middleware.sessionNameValidation, sessionController.startSession)
-sessionRouter.get('/status/:sessionId', middleware.sessionNameValidation, sessionController.statusSession)
-sessionRouter.get('/qr/:sessionId', middleware.sessionNameValidation, sessionController.sessionQrCode)
-sessionRouter.get('/qr/:sessionId/image', middleware.sessionNameValidation, sessionController.sessionQrCodeImage)
-sessionRouter.get('/restart/:sessionId', middleware.sessionNameValidation, sessionController.restartSession)
-sessionRouter.get('/terminate/:sessionId', middleware.sessionNameValidation, sessionController.terminateSession)
-sessionRouter.get('/terminateInactive', sessionController.terminateInactiveSessions)
-sessionRouter.get('/terminateAll', sessionController.terminateAllSessions)
-sessionRouter.get('/all', sessionController.getAllSessions)
+// Apply sessionId validation to all routes with :sessionId param
+sessionRouter.use('/:sessionId', validate(schemas.sessionIdParamSchema, 'params'));
+
+sessionRouter.get('/start/:sessionId', sessionController.startSession) // Validation applied by .use() above
+sessionRouter.get('/status/:sessionId', sessionController.statusSession) // Validation applied by .use() above
+sessionRouter.get('/qr/:sessionId', sessionController.sessionQrCode) // Validation applied by .use() above
+sessionRouter.get('/qr/:sessionId/image', sessionController.sessionQrCodeImage) // Validation applied by .use() above
+sessionRouter.get('/restart/:sessionId', sessionController.restartSession) // Validation applied by .use() above
+sessionRouter.get('/terminate/:sessionId', sessionController.terminateSession) // Validation applied by .use() above
+sessionRouter.get('/terminateInactive', sessionController.terminateInactiveSessions) // No sessionId param
+sessionRouter.get('/terminateAll', sessionController.terminateAllSessions) // No sessionId param
+sessionRouter.get('/all', sessionController.getAllSessions) // No sessionId param
 
 /**
  * ================
@@ -58,20 +63,20 @@ clientRouter.use(middleware.apikey)
 sessionRouter.use(middleware.clientSwagger)
 routes.use('/client', clientRouter)
 
-clientRouter.get('/getClassInfo/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], clientController.getClassInfo)
+// Apply sessionId validation to all client routes with :sessionId param
+clientRouter.use('/:sessionId', validate(schemas.sessionIdParamSchema, 'params'));
+
+clientRouter.get('/getClassInfo/:sessionId', [middleware.sessionValidation], clientController.getClassInfo) // Param validation applied by .use()
 clientRouter.post('/getNumberId/:sessionId', [
-  middleware.sessionNameValidation,
   middleware.sessionValidation,
-  middleware.validateRequest(['number'])
+  validate(schemas.getNumberIdBodySchema, 'body') // Validate request body
 ], clientController.getNumberId)
-clientRouter.get('/getState/:sessionId', [middleware.sessionNameValidation], clientController.getState)
+clientRouter.get('/getState/:sessionId', clientController.getState) // Param validation applied by .use()
 clientRouter.post('/sendMessage/:sessionId', [
-  middleware.sessionNameValidation,
   middleware.sessionValidation,
-  middleware.validateRequest(['chatId', 'content', 'contentType']),
-  middleware.sanitizeContentType()
+  validate(schemas.sendMessageBodySchema, 'body') // Validate request body
 ], clientController.sendMessage)
-clientRouter.get('/getWWebVersion/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], clientController.getWWebVersion)
+clientRouter.get('/getWWebVersion/:sessionId', [middleware.sessionValidation], clientController.getWWebVersion) // Param validation applied by .use()
 
 /**
  * ================
@@ -80,13 +85,15 @@ clientRouter.get('/getWWebVersion/:sessionId', [middleware.sessionNameValidation
  */
 const messageRouter = express.Router()
 messageRouter.use(middleware.apikey)
-sessionRouter.use(middleware.messageSwagger)
+messageRouter.use(middleware.messageSwagger) // Apply swagger tag middleware
 routes.use('/message', messageRouter)
 
+// Apply sessionId validation to all message routes with :sessionId param
+messageRouter.use('/:sessionId', validate(schemas.sessionIdParamSchema, 'params'));
+
 messageRouter.post('/delete/:sessionId', [
-  middleware.sessionNameValidation,
   middleware.sessionValidation,
-  middleware.validateRequest(['chatId', 'messageId'])
+  validate(schemas.deleteMessageBodySchema, 'body') // Validate request body
 ], messageController.deleteMessage)
 
 /**

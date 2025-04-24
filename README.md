@@ -15,7 +15,7 @@ A powerful REST API wrapper for the [whatsapp-web.js](https://github.com/pedrosl
 
 - 🌐 RESTful API for WhatsApp Web functionality
 - 🔄 Multiple concurrent sessions support
-- 🐳 Docker-ready for easy deployment
+- 🐳 Docker-ready with optimized container setup for easy deployment
 - 📱 Send and receive messages, media, and more
 - 👥 Manage groups, contacts, and chats
 - 🪝 Webhook integration for real-time events
@@ -28,8 +28,8 @@ A powerful REST API wrapper for the [whatsapp-web.js](https://github.com/pedrosl
 
 ### Prerequisites
 
-- Node.js (v14 or higher) for local development
-- Docker and Docker Compose (for containerized deployment)
+- Node.js (v16 or higher) for local development
+- Docker and Docker Compose (for containerized deployment, recommended)
 - A device to scan WhatsApp QR code
 
 ### Installation
@@ -42,18 +42,31 @@ A powerful REST API wrapper for the [whatsapp-web.js](https://github.com/pedrosl
    cd whatsapp-api
    ```
 
-2. Configure environment variables (see Configuration section below):
+2. Run the setup script to create necessary directories:
    ```bash
-   cp .env.example .env
+   # On Windows
+   docker-setup.bat
+
+   # On Linux/Mac
+   chmod +x docker-setup.sh
+   ./docker-setup.sh
+   ```
+
+3. Configure environment variables:
+   ```bash
+   # Use the Docker-optimized environment file
+   cp .env.docker .env
    # Edit .env file with your preferred settings
    ```
 
-3. Run with Docker Compose:
+4. Build and start the containers:
    ```bash
    docker-compose up -d
    ```
 
-4. The API will be available at http://localhost:3000
+5. The API will be available at http://localhost:3000
+
+For more detailed Docker instructions, see [README.docker.md](README.docker.md)
 
 #### Local Development
 
@@ -81,7 +94,11 @@ A powerful REST API wrapper for the [whatsapp-web.js](https://github.com/pedrosl
 
 ## 🔧 Configuration
 
-The application can be configured using environment variables. Create a `.env` file in the root directory or set them in your Docker Compose file.
+The application can be configured using environment variables. You can:
+
+1. Create a `.env` file in the root directory (use `.env.example` as a template for local development)
+2. Use the provided `.env.docker` file for Docker deployments (recommended for Docker)
+3. Set environment variables directly in your Docker Compose file
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -98,6 +115,7 @@ The application can be configured using environment variables. Create a `.env` f
 | `WEB_VERSION` | WhatsApp Web version | `2.2328.5` |
 | `WEB_VERSION_CACHE_TYPE` | Source for WhatsApp Web version | `none` |
 | `RECOVER_SESSIONS` | Recover session on page failure | `TRUE` |
+| `CHROME_HEADLESS` | Run Chrome in headless mode (set to FALSE to see the browser UI) | `TRUE` |
 | `SESSIONS_PATH` | Path to store session files | `./sessions` |
 
 ## 📖 Usage
@@ -205,14 +223,12 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [whatsapp-web.js](https://github.com/pedroslopez/whatsapp-web.js) - The amazing library that makes this project possible
 - The open-source community for their continuous support and contributions
 
-## Features
+## Advanced Features
 
-- Multiple independent WhatsApp sessions
-- Webhook notifications for various events (messages, status changes, etc.)
-- Media handling (send and receive images, documents, etc.)
-- Group management
-- Session persistence between server restarts
 - Customizable per-session configurations
+- Session persistence between server restarts
+- Docker-optimized deployment with volume mounts
+- Support for both headless and non-headless browser modes
 
 ## Setting up Multiple Sessions
 
@@ -268,15 +284,35 @@ Sessions are automatically restored when the server restarts. Each session maint
 
 ## Troubleshooting
 
+### Session Persistence Issues
+
 If you encounter issues with sessions not persisting between restarts:
 
-1. Ensure the `.cache/puppeteer` directory exists and is writable
-2. Check if the `sessions` directory contains session data
-3. Verify that the environment variables are set correctly
-4. Restart the server with `npm start`
+1. Ensure the required directories exist and are writable:
+   - `.cache/puppeteer`
+   - `.wwebjs_auth`
+   - `sessions`
+
+   When using Docker, these directories are automatically created and mounted as volumes.
+
+2. Verify that the environment variables are set correctly
+3. Restart the server:
+   ```bash
+   # For local development
+   npm start
+
+   # For Docker
+   docker-compose restart
+   ```
+
+### Stuck Sessions
 
 If a session gets stuck, you can restart it:
 
 ```bash
 curl -X PUT "http://localhost:3000/api/session/session1/restart" -H "x-api-key: YOUR_API_KEY"
 ```
+
+### Docker-Specific Issues
+
+For Docker-specific troubleshooting, refer to the [Docker README](README.docker.md).
