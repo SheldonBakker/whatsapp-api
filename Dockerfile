@@ -29,7 +29,7 @@ COPY . .
 RUN mkdir -p .cache/puppeteer .wwebjs_auth sessions
 
 # Expose port
-EXPOSE 3000
+EXPOSE 5656
 
 # Start the application
 CMD ["node", "server.js"]
