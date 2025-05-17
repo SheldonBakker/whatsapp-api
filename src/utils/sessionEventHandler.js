@@ -152,8 +152,8 @@ const initializeEvents = (client, sessionId, dependencies) => {
             logger.error(`Error deleting session after termination: ${error.message}`, { ...disconnectLogContext, error })
           }
         } else {
-           // Recovery for unexpected disconnects is handled by handleUnexpectedClosure
-           logger.warn(`Client disconnected unexpectedly (Reason: ${reason}). Recovery should be handled by browser/page event listeners.`, disconnectLogContext)
+          // Recovery for unexpected disconnects is handled by handleUnexpectedClosure
+          logger.warn(`Client disconnected unexpectedly (Reason: ${reason}). Recovery should be handled by browser/page event listeners.`, disconnectLogContext)
         }
       })
     }

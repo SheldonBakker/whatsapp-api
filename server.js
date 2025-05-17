@@ -4,6 +4,7 @@ require('dotenv').config()
 const app = require('./src/app')
 const { baseWebhookURL } = require('./src/config')
 const { sessions, flushSessions } = require('./src/sessions')
+const { scheduleHealthCheck } = require('./src/utils/healthCheckScheduler')
 
 // Start the server
 const port = process.env.PORT || 3000
@@ -17,6 +18,14 @@ if (!baseWebhookURL) {
 // Create HTTP server
 const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`)
+
+  // Schedule daily health check at 9:00 AM SAST
+  const healthCheckJob = scheduleHealthCheck('0 9 * * *', 'Africa/Johannesburg')
+
+  // Log the next scheduled health check
+  if (healthCheckJob) {
+    console.log(`Daily health check scheduled. Next run: ${healthCheckJob.nextInvocation()}`)
+  }
 })
 
 // Implement graceful shutdown

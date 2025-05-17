@@ -29,6 +29,15 @@ if (enableCallback) {
 // Comprehensive health check endpoint - requires API key
 routes.get('/health', [middleware.apikey], /* #swagger.tags = ['Health'] */ healthController.healthCheck)
 
+// Manually trigger WhatsApp health check messages - requires API key
+routes.post('/health/check', [middleware.apikey], /* #swagger.tags = ['Health'] */ healthController.triggerHealthCheck)
+
+// Test health check with a specific session - requires API key
+routes.post('/health/check/:sessionId', [
+  middleware.apikey,
+  validate(schemas.sessionIdParamSchema, 'params')
+], /* #swagger.tags = ['Health'] */ healthController.testHealthCheckWithSession)
+
 /**
  * ================
  * SESSION ENDPOINTS

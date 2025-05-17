@@ -4,6 +4,7 @@ const { sessionFolderPath } = require('../config')
 const { sendErrorResponse } = require('../utils')
 const { sessions } = require('../sessions')
 const os = require('os')
+const { runHealthCheck, testHealthCheck } = require('../utils/healthCheckScheduler')
 
 /**
  * Responds to ping request with 'I am Alive OKAY!'
@@ -128,4 +129,79 @@ const Callback = async (req, res) => {
   }
 }
 
-module.exports = { ping, Callback, healthCheck }
+/**
+ * Manually triggers a health check that sends WhatsApp messages to configured recipients
+ *
+ * @function triggerHealthCheck
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>} - Promise that resolves once response is sent
+ */
+const triggerHealthCheck = async (req, res) => {
+  /*
+    #swagger.tags = ['Health']
+    #swagger.description = 'Manually trigger a health check that sends WhatsApp messages to configured recipients'
+  */
+  try {
+    // Run the health check asynchronously
+    runHealthCheck()
+      .then(() => {
+        console.log('Manual health check completed successfully')
+      })
+      .catch(error => {
+        console.error('Manual health check failed:', error)
+      })
+
+    // Respond immediately without waiting for the health check to complete
+    res.json({
+      success: true,
+      message: 'Health check triggered. WhatsApp messages will be sent to configured recipients.'
+    })
+  } catch (error) {
+    console.error('Error triggering health check:', error)
+    sendErrorResponse(res, 500, error.message)
+  }
+}
+
+/**
+ * Tests the health check with a specific session
+ *
+ * @function testHealthCheckWithSession
+ * @async
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {string} req.params.sessionId - The session ID to use for the test
+ * @returns {Promise<void>} - Promise that resolves once response is sent
+ */
+const testHealthCheckWithSession = async (req, res) => {
+  /*
+    #swagger.tags = ['Health']
+    #swagger.description = 'Test the health check with a specific session'
+  */
+  try {
+    const { sessionId } = req.params
+
+    // Check if the session exists
+    if (!sessions.has(sessionId)) {
+      return sendErrorResponse(res, 404, `Session ${sessionId} not found`)
+    }
+
+    // Run the test health check
+    const result = await testHealthCheck(sessionId)
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: `Health check test sent successfully using session ${sessionId}`
+      })
+    } else {
+      sendErrorResponse(res, 500, `Health check test failed: ${result.error}`)
+    }
+  } catch (error) {
+    console.error('Error testing health check:', error)
+    sendErrorResponse(res, 500, error.message)
+  }
+}
+
+module.exports = { ping, Callback, healthCheck, triggerHealthCheck, testHealthCheckWithSession }
