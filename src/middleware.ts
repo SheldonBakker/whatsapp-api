@@ -6,6 +6,7 @@ import rateLimiting from 'express-rate-limit';
 import { logger } from './utils/logger';
 import { AuthenticatedRequest, MiddlewareFunction } from './types';
 import Joi from 'joi';
+import { SessionRecovery } from './utils/sessionRecovery';
 
 // --- Generic Joi Validation Middleware ---
 export const validate = (schema: Joi.Schema, property: string = 'body'): MiddlewareFunction => {
@@ -112,11 +113,60 @@ export const apikey = async (req: AuthenticatedRequest, res: Response, next: Nex
   }
 };
 
-// Session Exists/Ready Validation (Keep as is, uses custom logic)
+// Enhanced Session Validation with Automatic Recovery
 export const sessionValidation = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const validation = await validateSession(req.params.sessionId);
+    const sessionId = req.params.sessionId;
+    const reqLogger = req.logger || logger;
+    const logContext = { sessionId };
+
+    // First attempt: Normal validation
+    let validation = await validateSession(sessionId);
+
     if (validation.success !== true) {
+      reqLogger.info(`Session validation failed: ${validation.message}. Attempting recovery...`, logContext);
+
+      // Check if this is a recoverable error
+      const recoverableErrors = [
+        'session_not_found_in_memory',
+        'browser_unreachable_or_dead',
+        'session_destroyed'
+      ];
+
+      if (recoverableErrors.includes(validation.message)) {
+        try {
+          reqLogger.info('Attempting automatic session recovery...', logContext);
+          const recoveryResult = await SessionRecovery.recoverSession(sessionId);
+
+          if (recoveryResult.success) {
+            reqLogger.info(`Session recovery successful: ${recoveryResult.message}`, { ...logContext, recoveryResult });
+
+            // Wait a moment for the session to initialize
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Re-validate the session
+            validation = await validateSession(sessionId);
+
+            if (validation.success) {
+              reqLogger.info('Session validation successful after recovery', logContext);
+              next();
+              return;
+            } else {
+              reqLogger.warn(`Session still invalid after recovery: ${validation.message}`, { ...logContext, validation });
+            }
+          } else {
+            reqLogger.error(`Session recovery failed: ${recoveryResult.message}`, { ...logContext, recoveryResult });
+          }
+        } catch (recoveryError: any) {
+          reqLogger.error(`Error during session recovery: ${recoveryError.message}`, { ...logContext, error: recoveryError });
+        }
+      }
+
+      // If we reach here, validation failed and recovery either wasn't attempted or failed
+      const errorMessage = validation.message === 'session_not_found_in_memory'
+        ? 'Session not found. Please create a new session using /session/start/{sessionId}'
+        : validation.message;
+
       /* #swagger.responses[404] = {
           description: "Not Found.",
           content: {
@@ -126,9 +176,11 @@ export const sessionValidation = async (req: AuthenticatedRequest, res: Response
           }
         }
       */
-      sendErrorResponse(res, 404, validation.message);
+      sendErrorResponse(res, 404, errorMessage);
       return;
     }
+
+    // Session is valid, proceed
     next();
   } catch (error: any) {
     const reqLogger = req.logger || logger;

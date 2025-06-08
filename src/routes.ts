@@ -61,6 +61,9 @@ routes.get('/terminate/:sessionId', [
 // Session listing endpoint - no sessionId param needed
 routes.get('/all', [middleware.apikey, middleware.sessionSwagger], sessionController.getAllSessions);
 
+// Session health endpoint - no sessionId param needed
+routes.get('/health', [middleware.apikey, middleware.sessionSwagger], sessionController.getSessionsHealth);
+
 /**
  * ================
  * MESSAGE ENDPOINT

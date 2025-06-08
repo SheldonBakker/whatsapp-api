@@ -36,14 +36,46 @@ export class SessionRecovery {
 
     try {
       const client = sessions.get(sessionId);
-      
+
       if (!client) {
-        logger.info('Session not found in memory, attempting fresh setup', logContext);
+        logger.info('Session not found in memory, checking for existing session data', logContext);
+
+        // Check if session data exists on disk
+        const fs = require('fs');
+        const path = require('path');
+        const { sessionFolderPath } = require('../config');
+
+        const sessionDir = path.join(sessionFolderPath, `session-${sessionId}`);
+        const sessionExists = fs.existsSync(sessionDir);
+
+        if (sessionExists) {
+          logger.info('Found existing session data on disk, attempting restoration', logContext);
+          const setupResult = setupSession(sessionId);
+
+          if (setupResult.success) {
+            // Wait for initialization to start
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Check if session was added to memory
+            const restoredClient = sessions.get(sessionId);
+            if (restoredClient) {
+              logger.info('Session successfully restored from disk', logContext);
+              this.recoveryAttempts.delete(sessionId);
+              return {
+                success: true,
+                message: 'Session restored from existing data',
+                action: 'restored_from_disk'
+              };
+            }
+          }
+        }
+
+        logger.info('No existing session data found, attempting fresh setup', logContext);
         const setupResult = setupSession(sessionId);
         this.recoveryAttempts.delete(sessionId);
         return {
           success: setupResult.success,
-          message: setupResult.message || 'Setup completed',
+          message: setupResult.message || 'Fresh setup initiated',
           action: 'fresh_setup'
         };
       }
@@ -51,15 +83,15 @@ export class SessionRecovery {
       // Step 1: Force kill any existing browser processes
       logger.info('Killing existing browser processes', logContext);
       await safeKillBrowser(client);
-      
+
       // Step 2: Mark client as destroyed and remove from sessions
       client._destroyed = true;
       sessions.delete(sessionId);
-      
+
       // Step 3: Wait before attempting recovery
       logger.info(`Waiting ${this.RECOVERY_DELAY}ms before recovery`, logContext);
       await new Promise(resolve => setTimeout(resolve, this.RECOVERY_DELAY));
-      
+
       // Step 4: Setup new session
       logger.info('Setting up new session after recovery', logContext);
       const setupResult = setupSession(sessionId);

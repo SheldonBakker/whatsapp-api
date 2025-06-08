@@ -10,6 +10,7 @@ import {
 import { sendErrorResponse } from '../utils';
 import { AuthenticatedRequest, TypedResponse } from '../types';
 import { SessionRecovery } from '../utils/sessionRecovery';
+import { SessionHealthMonitor } from '../utils/sessionHealthMonitor';
 
 // Define standard status codes
 const HTTP_OK = 200;
@@ -549,5 +550,68 @@ export const getAllSessions = async (_req: AuthenticatedRequest, res: TypedRespo
     sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while retrieving session list.');
   }
 }
+
+/**
+ * Get health status of all sessions
+ * @async
+ * @param {Object} _req - The HTTP request object (unused).
+ * @param {Object} res - The HTTP response object.
+ * @returns {Promise<void>}
+ */
+export const getSessionsHealth = async (_req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
+  // #swagger.summary = 'Get sessions health status'
+  // #swagger.description = 'Returns health status information for all active WhatsApp sessions, including failure counts and recovery status.'
+  try {
+    /*
+      #swagger.responses[200] = {
+        description: 'Session health status retrieved successfully',
+        content: {
+          "application/json": {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean', example: true },
+                data: {
+                  type: 'object',
+                  properties: {
+                    totalSessions: { type: 'number', example: 3 },
+                    healthySessions: { type: 'number', example: 2 },
+                    unhealthySessions: { type: 'number', example: 1 },
+                    sessionDetails: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          sessionId: { type: 'string', example: 'my-session' },
+                          isHealthy: { type: 'boolean', example: true },
+                          failureCount: { type: 'number', example: 0 },
+                          state: { type: 'string', example: 'CONNECTED' },
+                          message: { type: 'string', example: 'Session is ready' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      #swagger.responses[500] = {
+        description: 'Internal Server Error',
+        content: {
+          "application/json": {
+            schema: { "$ref": "#/definitions/ErrorResponse" }
+          }
+        }
+      }
+    */
+
+    const healthStatus = await SessionHealthMonitor.getHealthStatus();
+    res.json({ success: true, data: healthStatus });
+  } catch (error: any) {
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, `Failed to get session health status: ${error.message}`);
+  }
+};
 
 // All functions are already exported individually above

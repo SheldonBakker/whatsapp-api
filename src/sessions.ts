@@ -158,6 +158,10 @@ const restoreSessions = async (): Promise<void> => { // Make async
     logger.info(`Found items in session directory: ${files.length}`, { items: files }); // Log count and potentially items if not too many
 
     let restoreCount = 0;
+    let successCount = 0;
+    const validSessionDirs = [];
+
+    // First pass: validate session directories
     for (const file of files) {
       const match = file.match(/^session-(.+)$/);
       const fullPath = path.join(sessionFolderPath, file);
@@ -167,10 +171,20 @@ const restoreSessions = async (): Promise<void> => { // Make async
         const stats = await statAsync(fullPath);
         if (match && stats.isDirectory()) {
           const sessionId = match[1];
-          logger.info('Existing session directory found, initiating restore', { sessionId });
-          // Setup session without awaiting completion here, let them initialize in parallel
-          setupSession(sessionId);
-          restoreCount++;
+
+          // Check if session data exists (look for Default folder which indicates valid WhatsApp session)
+          const sessionDataPath = path.join(fullPath, 'Default');
+          try {
+            await statAsync(sessionDataPath);
+            validSessionDirs.push(sessionId);
+            logger.info('Found valid session data for restoration', { sessionId });
+          } catch (dataErr: any) {
+            if (dataErr.code === 'ENOENT') {
+              logger.warn(`Session directory "${file}" exists but contains no valid data. Skipping.`, { sessionId });
+            } else {
+              logger.warn(`Error checking session data for "${file}": ${dataErr.message}`, { sessionId, error: dataErr });
+            }
+          }
         } else if (!stats.isDirectory()) {
           logger.warn(`Found non-directory item "${file}" in session directory. Skipping.`, { path: fullPath });
         }
@@ -178,7 +192,55 @@ const restoreSessions = async (): Promise<void> => { // Make async
         logger.error(`Error accessing item "${file}" during restore: ${statErr.message}`, { path: fullPath, error: statErr });
       }
     }
-    logger.info(`Session restore process initiated for ${restoreCount} sessions.`);
+
+    if (validSessionDirs.length === 0) {
+      logger.info('No valid session directories found to restore.');
+      return;
+    }
+
+    logger.info(`Found ${validSessionDirs.length} valid session directories. Starting restoration...`);
+
+    // Second pass: restore valid sessions
+    for (const sessionId of validSessionDirs) {
+      const logContext = { sessionId };
+      try {
+        // Check if session is already in memory (shouldn't be on startup, but safety check)
+        if (sessions.has(sessionId)) {
+          logger.info('Session already exists in memory, skipping restoration', logContext);
+          continue;
+        }
+
+        logger.info('Initiating session restoration', logContext);
+        const result = setupSession(sessionId);
+
+        if (result.success) {
+          restoreCount++;
+          logger.info('Session restoration initiated successfully', logContext);
+
+          // Wait a moment and check if the session was actually added to memory
+          await new Promise(resolve => setTimeout(resolve, 500));
+          if (sessions.has(sessionId)) {
+            successCount++;
+            logger.info('Session successfully added to memory', logContext);
+          } else {
+            logger.warn('Session setup succeeded but not found in memory', logContext);
+          }
+        } else {
+          logger.warn(`Session restoration failed: ${result.message}`, logContext);
+        }
+      } catch (restoreErr: any) {
+        logger.error(`Error restoring session: ${restoreErr.message}`, { ...logContext, error: restoreErr });
+      }
+    }
+
+    logger.info(`Session restore process completed. Initiated: ${restoreCount}, Successfully added to memory: ${successCount} out of ${validSessionDirs.length} valid sessions found.`);
+
+    // Log current active sessions
+    logger.info(`Active sessions in memory: ${sessions.size}`);
+    if (sessions.size > 0) {
+      const activeSessionIds = Array.from(sessions.keys());
+      logger.info(`Active session IDs: ${activeSessionIds.join(', ')}`);
+    }
   } catch (error: any) {
     logger.error(`Failed to restore sessions: ${error.message}`, { error });
     // Depending on severity, might want to exit or notify admin

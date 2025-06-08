@@ -143,4 +143,10 @@ app.use(errorHandler); // Register the error handler
 ensureDirectories();
 restoreSessions();
 
+// Start session health monitoring after a delay to allow sessions to initialize
+setTimeout(() => {
+  const { SessionHealthMonitor } = require('./utils/sessionHealthMonitor');
+  SessionHealthMonitor.startMonitoring();
+}, 30000); // Wait 30 seconds before starting health monitoring
+
 export default app;
