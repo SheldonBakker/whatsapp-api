@@ -3,7 +3,6 @@ const app = require('../dist/src/app').default
 
 // Test configuration
 const API_KEY = process.env.API_KEY || 'test-api-key'
-const BASE_URL = 'http://localhost:3000'
 const TEST_SESSIONS = ['test-session-1', 'test-session-2', 'test-session-3']
 
 describe('Multi-Session WhatsApp API Tests', () => {

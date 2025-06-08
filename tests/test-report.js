@@ -79,7 +79,6 @@ class TestReporter {
     }
 
     // Parse Jest output for test results
-    const testSuiteMatch = output.match(/Test Suites:.*?(\d+) passed.*?(\d+) total/)
     const testMatch = output.match(/Tests:.*?(\d+) passed.*?(\d+) total/)
     const timeMatch = output.match(/Time:\s*(\d+\.?\d*)\s*s/)
 

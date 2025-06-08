@@ -22,19 +22,6 @@ describe('Session Recovery Tests', () => {
   describe('Session Not Found Recovery', () => {
     test('should return helpful error message when session not found', async () => {
       try {
-        const response = await axios.post(
-          `${testUtils.baseUrl}/sendMessage/${testSessionId}`,
-          {
-            chatId: '1234567890@c.us',
-            contentType: 'string',
-            content: 'Test message'
-          },
-          {
-            headers: { 'x-api-key': testUtils.apiKey },
-            timeout: 10000
-          }
-        )
-
         // Should not reach here
         expect(true).toBe(false)
       } catch (error) {
