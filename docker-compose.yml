@@ -3,20 +3,20 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ${CONTAINER_NAME:-whatsapp-api}
-    restart: ${RESTART_POLICY:-unless-stopped}
+    container_name: whatsapp-api
+    restart: unless-stopped
     ports:
-      - "${HOST_BIND:-0.0.0.0}:5656:5656"
+      - "0.0.0.0:5656:5656"
+
     # These volumes persist your session data even when containers are stopped
     volumes:
-      - ${SESSIONS_PATH:-./sessions}:/usr/src/app/sessions       # WhatsApp session data (PERSISTENT)
-      - ${AUTH_PATH:-./.wwebjs_auth}:/usr/src/app/.wwebjs_auth  # WhatsApp auth data & Chrome profiles (PERSISTENT)
-      - ${CACHE_PATH:-./.cache}:/usr/src/app/.cache           # Cache data (PERSISTENT)
-      - ${LOGS_PATH:-./logs}:/usr/src/app/logs               # Application logs (PERSISTENT)
+      - ./sessions:/usr/src/app/sessions       # WhatsApp session data (PERSISTENT)
+      - ./.wwebjs_auth:/usr/src/app/.wwebjs_auth  # WhatsApp auth data & Chrome profiles (PERSISTENT)
+      - ./.cache:/usr/src/app/.cache           # Cache data (PERSISTENT)
     environment:
       - PORT=5656
       - API_KEY=${API_KEY:-0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2}
-      - BASE_WEBHOOK_URL=${BASE_WEBHOOK_URL:-http://host.docker.internal:5656/callback}
+      - BASE_WEBHOOK_URL=${BASE_WEBHOOK_URL:-https://app.remlic.co.za/callback}
       - ENABLE_LOCAL_CALLBACK_EXAMPLE=${ENABLE_LOCAL_CALLBACK_EXAMPLE:-TRUE}
       - MAX_ATTACHMENT_SIZE=${MAX_ATTACHMENT_SIZE:-10000000}
       - SET_MESSAGES_AS_SEEN=${SET_MESSAGES_AS_SEEN:-TRUE}
@@ -29,37 +29,17 @@ services:
       - RECOVER_SESSIONS=${RECOVER_SESSIONS:-TRUE}
       - CHROME_HEADLESS=${CHROME_HEADLESS:-TRUE}
       - SESSIONS_PATH=${SESSIONS_PATH:-./sessions}
-      # Docker/Container specific environment variables
-      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-      - CHROME_BIN=/usr/bin/chromium-browser
-      - PUPPETEER_DEBUG=${PUPPETEER_DEBUG:-FALSE}
-      - NODE_ENV=${NODE_ENV:-production}
-      - DISPLAY=:99
     # Add capabilities needed for Chrome/Puppeteer to work properly in Docker
     cap_add:
       - SYS_ADMIN
     security_opt:
       - seccomp=unconfined
-    shm_size: ${SHM_SIZE:-2gb}  # Increased shared memory for better Chrome performance
-    # Memory limits to prevent container from consuming too much memory
-    mem_limit: ${MEM_LIMIT:-4g}
-    memswap_limit: ${MEMSWAP_LIMIT:-4g}
-    # CPU limits
-    cpus: ${CPU_LIMIT:-2.0}
-    # Enhanced health check using the comprehensive health endpoint
-    healthcheck:
-      test: ["CMD", "curl", "-f", "-H", "x-api-key: ${API_KEY:-0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2}", "http://localhost:5656/health"]
-      interval: ${HEALTH_CHECK_INTERVAL:-30s}
-      timeout: ${HEALTH_CHECK_TIMEOUT:-10s}
-      retries: ${HEALTH_CHECK_RETRIES:-3}
-      start_period: ${HEALTH_CHECK_START_PERIOD:-60s}
+    shm_size: 1gb
+    networks:
+      - nginx-proxy_default
 
+networks:
+  nginx-proxy_default:
+    external: true
 
-
-# Named volumes for better performance (optional)
-volumes:
-  sessions_data:
-  auth_data:
-  cache_data:
-  logs_data:
 

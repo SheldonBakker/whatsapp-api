@@ -2,8 +2,9 @@ import Joi from 'joi';
 import { ValidationSchema } from '../types';
 
 // Basic WhatsApp ID format (adjust regex as needed for more strictness)
-// Allows digits, '+', '@', '.', '-'
-const whatsappIdRegex: RegExp = /^[0-9@.+-\s]+$/;
+// Allows digits, letters, '+', '@', '.', '-', and spaces for WhatsApp chat IDs
+// Examples: "27681501196@c.us", "123456789@g.us", "+1234567890@c.us"
+const whatsappIdRegex: RegExp = /^[0-9a-zA-Z@.+-\s]+$/;
 // Basic Session ID format (alphanumeric, hyphens, underscores)
 const sessionIdRegex: RegExp = /^[a-zA-Z0-9-_]+$/;
 
@@ -41,11 +42,18 @@ const messageContentSchema: Joi.AlternativesSchema = Joi.alternatives().try(
   'any.required': 'Content (content) is required.'
 });
 
-// Schema for Content Type (used in body)
+// Schema for Content Type (used in body) - Updated to match controller implementation
 const contentTypeSchema: Joi.StringSchema = Joi.string().valid(
-  'text', 'image', 'video', 'audio', 'document', 'location', 'vcard', 'sticker' // Add other valid types as needed
+  'string',              // For text messages
+  'MessageMedia',        // For media files (images, videos, audio, documents)
+  'MessageMediaFromURL', // For media from URL
+  'Location',            // For location sharing
+  'Buttons',             // For button messages
+  'List',                // For list messages
+  'Contact',             // For contact cards
+  'Poll'                 // For polls
 ).required().messages({
-  'any.only': 'Invalid content type provided.',
+  'any.only': 'Invalid content type. Must be one of: string, MessageMedia, MessageMediaFromURL, Location, Buttons, List, Contact, Poll',
   'any.required': 'Content type (contentType) is required.'
 });
 
