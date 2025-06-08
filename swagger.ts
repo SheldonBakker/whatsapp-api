@@ -1,7 +1,9 @@
-const swaggerAutogen = require('swagger-autogen')({ openapi: '3.0.0', autoBody: false })
+import swaggerAutogen from 'swagger-autogen';
 
-const outputFile = './swagger.json'
-const endpointsFiles = ['./src/routes.js']
+const swaggerGenerator = swaggerAutogen({ openapi: '3.0.0', autoBody: false });
+
+const outputFile = './swagger.json';
+const endpointsFiles = ['./dist/src/routes.js'];
 
 const doc = {
   info: {
@@ -77,4 +79,4 @@ const doc = {
   }
 }
 
-swaggerAutogen(outputFile, endpointsFiles, doc)
+swaggerGenerator(outputFile, endpointsFiles, doc);

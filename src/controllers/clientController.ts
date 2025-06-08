@@ -1,6 +1,7 @@
-const { MessageMedia, Location, Buttons, List, Poll } = require('whatsapp-web.js')
-const { sessions } = require('../sessions')
-const { sendErrorResponse } = require('../utils')
+import { MessageMedia, Location, Buttons, List, Poll } from 'whatsapp-web.js';
+import { sessions } from '../sessions';
+import { sendErrorResponse } from '../utils';
+import { AuthenticatedRequest, TypedResponse } from '../types';
 
 /**
  * Send a message to a chat using the WhatsApp API
@@ -18,7 +19,7 @@ const { sendErrorResponse } = require('../utils')
  * @returns {Object} - The response object containing a success flag and the sent message data
  * @throws {Error} - If there is an error while sending the message
  */
-const sendMessage = async (req, res) => {
+export const sendMessage = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   /*
     #swagger.requestBody = {
       required: true,
@@ -67,10 +68,14 @@ const sendMessage = async (req, res) => {
   */
 
   try {
-    const { chatId, content, contentType, options } = req.body
-    const client = sessions.get(req.params.sessionId)
+    const { chatId, content, contentType, options } = req.body;
+    const client = sessions.get(req.params.sessionId);
 
-    let messageOut
+    if (!client) {
+      return sendErrorResponse(res, 404, 'Session not found');
+    }
+
+    let messageOut: any;
     switch (contentType) {
       case 'string':
         if (options?.media) {
@@ -121,10 +126,10 @@ const sendMessage = async (req, res) => {
         return sendErrorResponse(res, 404, 'contentType invalid, must be string, MessageMedia, MessageMediaFromURL, Location, Buttons, List, Contact or Poll')
     }
 
-    res.json({ success: true, message: messageOut })
-  } catch (error) {
-    console.log(error)
-    sendErrorResponse(res, 500, error.message)
+    res.json({ success: true, message: messageOut });
+  } catch (error: any) {
+    console.log(error);
+    sendErrorResponse(res, 500, error.message);
   }
 }
 
@@ -139,13 +144,16 @@ const sendMessage = async (req, res) => {
  * @returns {Object} - Response object with session info
  * @throws Will throw an error if session info cannot be retrieved
  */
-const getClassInfo = async (req, res) => {
+export const getClassInfo = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   try {
-    const client = sessions.get(req.params.sessionId)
-    const sessionInfo = await client.info
-    res.json({ success: true, sessionInfo })
-  } catch (error) {
-    sendErrorResponse(res, 500, error.message)
+    const client = sessions.get(req.params.sessionId);
+    if (!client) {
+      return sendErrorResponse(res, 404, 'Session not found');
+    }
+    const sessionInfo = await (client as any).info;
+    res.json({ success: true, sessionInfo });
+  } catch (error: any) {
+    sendErrorResponse(res, 500, error.message);
   }
 }
 
@@ -161,7 +169,7 @@ const getClassInfo = async (req, res) => {
  * @returns {Object} - Response object with a boolean indicating whether the user is registered
  * @throws Will throw an error if user registration cannot be checked
  */
-const getNumberId = async (req, res) => {
+export const getNumberId = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   /*
     #swagger.requestBody = {
       required: true,
@@ -178,12 +186,15 @@ const getNumberId = async (req, res) => {
     }
   */
   try {
-    const { number } = req.body
-    const client = sessions.get(req.params.sessionId)
-    const result = await client.getNumberId(number)
-    res.json({ success: true, result })
-  } catch (error) {
-    sendErrorResponse(res, 500, error.message)
+    const { number } = req.body;
+    const client = sessions.get(req.params.sessionId);
+    if (!client) {
+      return sendErrorResponse(res, 404, 'Session not found');
+    }
+    const result = await client.getNumberId(number);
+    res.json({ success: true, result });
+  } catch (error: any) {
+    sendErrorResponse(res, 500, error.message);
   }
 }
 
@@ -199,13 +210,16 @@ const getNumberId = async (req, res) => {
  * @returns {Object} The response object.
  * @throws {Error} If there is an error while accepting the invite.
  */
-const getWWebVersion = async (req, res) => {
+export const getWWebVersion = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   try {
-    const client = sessions.get(req.params.sessionId)
-    const result = await client.getWWebVersion()
-    res.json({ success: true, result })
-  } catch (error) {
-    sendErrorResponse(res, 500, error.message)
+    const client = sessions.get(req.params.sessionId);
+    if (!client) {
+      return sendErrorResponse(res, 404, 'Session not found');
+    }
+    const result = await client.getWWebVersion();
+    res.json({ success: true, result });
+  } catch (error: any) {
+    sendErrorResponse(res, 500, error.message);
   }
 }
 
@@ -219,20 +233,17 @@ const getWWebVersion = async (req, res) => {
  * @returns {Promise<void>}
  * @throws {Error} If there is an error retrieving the state.
  */
-const getState = async (req, res) => {
+export const getState = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   try {
-    const client = sessions.get(req.params.sessionId)
-    const state = await client.getState()
-    res.json({ success: true, state })
-  } catch (error) {
-    sendErrorResponse(res, 500, error.message)
+    const client = sessions.get(req.params.sessionId);
+    if (!client) {
+      return sendErrorResponse(res, 404, 'Session not found');
+    }
+    const state = await client.getState();
+    res.json({ success: true, state });
+  } catch (error: any) {
+    sendErrorResponse(res, 500, error.message);
   }
 }
 
-module.exports = {
-  getClassInfo,
-  getNumberId,
-  getState,
-  sendMessage,
-  getWWebVersion
-}
+// All functions are already exported individually above

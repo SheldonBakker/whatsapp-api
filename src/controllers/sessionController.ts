@@ -1,22 +1,23 @@
-const qr = require('qr-image')
-const {
+import qr from 'qr-image';
+import {
   setupSession,
   deleteSession,
   reloadSession,
   validateSession,
   flushSessions,
   sessions // Direct access to the map
-} = require('../sessions') // Assuming sessions.js is in ../
-const { sendErrorResponse } = require('../utils') // Removed waitForNestedObject as we won't wait deeply here
+} from '../sessions';
+import { sendErrorResponse } from '../utils';
+import { AuthenticatedRequest, TypedResponse } from '../types';
 
 // Define standard status codes
-const HTTP_OK = 200
-const HTTP_ACCEPTED = 202 // Good for async process accepted
-const HTTP_BAD_REQUEST = 400 // General client error
-const HTTP_NOT_FOUND = 404 // Resource not found
-const HTTP_CONFLICT = 409 // Resource already exists or state conflict
-const HTTP_UNPROCESSABLE_ENTITY = 422 // Validation error on input
-const HTTP_INTERNAL_SERVER_ERROR = 500 // Server error
+const HTTP_OK = 200;
+const HTTP_ACCEPTED = 202; // Good for async process accepted
+const HTTP_BAD_REQUEST = 400; // General client error
+const HTTP_NOT_FOUND = 404; // Resource not found
+const HTTP_CONFLICT = 409; // Resource already exists or state conflict
+const HTTP_UNPROCESSABLE_ENTITY = 422; // Validation error on input
+const HTTP_INTERNAL_SERVER_ERROR = 500; // Server error
 
 /**
  * Starts initiating a session or confirms it's already starting/running.
@@ -28,13 +29,13 @@ const HTTP_INTERNAL_SERVER_ERROR = 500 // Server error
  * @param {string} req.params.sessionId - The session ID to start.
  * @returns {Promise<void>}
  */
-const startSession = async (req, res) => {
+export const startSession = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Start a session'
   // #swagger.description = 'Starts initiating a session for the given ID. If already starting or running, confirms status.'
   const sessionId = req.params.sessionId
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
-    return sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
   }
 
   try {
@@ -49,11 +50,11 @@ const startSession = async (req, res) => {
       if (!setupResult.success) {
         // #swagger.responses[422] = { description: 'Unprocessable Entity - Setup failed (e.g., critical error like folder creation).' }
         // Use setupResult.message which might contain specific error
-        return sendErrorResponse(res, HTTP_UNPROCESSABLE_ENTITY, setupResult.message || 'Failed to initiate session setup.')
+        sendErrorResponse(res, HTTP_UNPROCESSABLE_ENTITY, setupResult.message || 'Failed to initiate session setup.')
       }
 
       // #swagger.responses[202] = { description: 'Accepted - Session initialization started. Poll /status for progress.' }
-      return res.status(HTTP_ACCEPTED).json({
+      res.status(HTTP_ACCEPTED).json({
         success: true,
         message: 'Session initialization accepted. Please poll status.',
         state: 'INITIALIZING' // Indicate the initial state
@@ -62,7 +63,7 @@ const startSession = async (req, res) => {
       // Session already exists (connected, starting, qr, etc.)
       // #swagger.responses[200] = { description: 'OK - Session already exists or is initializing.' }
       console.log(`[Controller] Session ${sessionId} already exists. State: ${currentStatus.state}, Message: ${currentStatus.message}`)
-      return res.status(HTTP_OK).json({
+      res.status(HTTP_OK).json({
         success: true, // Indicate the operation succeeded (finding existing session)
         message: `Session already exists or is in progress (${currentStatus.message}).`,
         state: currentStatus.state || 'UNKNOWN'
@@ -71,12 +72,12 @@ const startSession = async (req, res) => {
       // Catch unexpected validation result that isn't "not found" but also not clearly existing
       console.error(`[Controller] Unexpected validation state for ${sessionId}:`, currentStatus)
       // #swagger.responses[500] = { description: 'Internal Server Error - Unexpected session state during start.' }
-      return sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, `Unexpected session state: ${currentStatus.message}`)
+      sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, `Unexpected session state: ${currentStatus.message}`)
     }
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
-    console.error('[Controller:startSession] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred.')
+    console.error('[Controller:startSession] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred.');
   }
 }
 
@@ -90,13 +91,13 @@ const startSession = async (req, res) => {
  * @param {string} req.params.sessionId - The session ID to check.
  * @returns {Promise<void>}
  */
-const statusSession = async (req, res) => {
+export const statusSession = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Get session status'
   // #swagger.description = 'Retrieves the current status (state, QR availability) of the session.'
   const sessionId = req.params.sessionId
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
-    return sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
   }
 
   try {
@@ -104,7 +105,7 @@ const statusSession = async (req, res) => {
 
     if (sessionData.message === 'session_not_found_in_memory') {
       // #swagger.responses[404] = { description: 'Not Found - Session with this ID does not exist.' }
-      return res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found.', state: 'NOT_FOUND' })
+      res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found.', state: 'NOT_FOUND' })
     }
 
     // Add QR status information based on session state and qr presence
@@ -137,11 +138,11 @@ const statusSession = async (req, res) => {
 
     // Return 200 OK for any found session, status details are in the body
     // #swagger.responses[200] = { description: 'Status of the session.', content: { "application/json": { schema: { "$ref": "#/definitions/StatusSessionResponse" } } } }
-    return res.status(HTTP_OK).json(responsePayload)
-  } catch (error) {
+    res.status(HTTP_OK).json(responsePayload)
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
-    console.error('[Controller:statusSession] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred fetching status.')
+    console.error('[Controller:statusSession] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred fetching status.');
   }
 }
 
@@ -155,13 +156,13 @@ const statusSession = async (req, res) => {
  * @param {string} req.params.sessionId - The session ID.
  * @returns {Promise<void>}
  */
-const sessionQrCode = async (req, res) => {
+export const sessionQrCode = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Get session QR code string'
   // #swagger.description = 'Returns the QR code string if available for scanning.'
   const sessionId = req.params.sessionId
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
-    return sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
   }
 
   try {
@@ -169,32 +170,35 @@ const sessionQrCode = async (req, res) => {
 
     if (!client) {
       // #swagger.responses[404] = { description: 'Not Found - Session not found.' }
-      return res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found.' })
+      res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found.' });
+      return;
     }
 
     if (client._initializing) {
       // #swagger.responses[202] = { description: 'Accepted - Session is initializing, QR not ready yet.' }
-      return res.status(HTTP_ACCEPTED).json({ success: false, message: 'Session is initializing, QR code not ready yet.' })
+      res.status(HTTP_ACCEPTED).json({ success: false, message: 'Session is initializing, QR code not ready yet.' });
+      return;
     }
 
     if (client.qr) {
       // #swagger.responses[200] = { description: 'OK - QR code string.', content: { "application/json": { schema: { type: "object", properties: { success: {type: "boolean"}, qr: {type: "string"} } } } } }
-      return res.status(HTTP_OK).json({ success: true, qr: client.qr })
+      res.status(HTTP_OK).json({ success: true, qr: client.qr });
+      return;
     }
 
     // Check state if no QR found
     const state = await client.getState().catch(() => 'ERROR') // Gracefully handle getState error
     if (state === 'CONNECTED') {
       // #swagger.responses[200] = { description: 'OK - QR already scanned and session connected.' } // Changed from 409 to 200
-      return res.status(HTTP_OK).json({ success: false, message: 'QR code already scanned and session connected.' })
+      res.status(HTTP_OK).json({ success: false, message: 'QR code already scanned and session connected.' })
     } else {
       // #swagger.responses[404] = { description: 'Not Found - QR code not available (might be disconnected or initializing without QR yet).' }
-      return res.status(HTTP_NOT_FOUND).json({ success: false, message: 'QR code not available for this session state.' })
+      res.status(HTTP_NOT_FOUND).json({ success: false, message: 'QR code not available for this session state.' })
     }
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
-    console.error('[Controller:sessionQrCode] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred retrieving QR code.')
+    console.error('[Controller:sessionQrCode] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred retrieving QR code.');
   }
 }
 
@@ -208,7 +212,7 @@ const sessionQrCode = async (req, res) => {
  * @param {string} req.params.sessionId - The session ID.
  * @returns {Promise<void>}
  */
-const sessionQrCodeImage = async (req, res) => {
+export const sessionQrCodeImage = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Get session QR code as image'
   // #swagger.description = 'Returns the QR code as a PNG image if available for scanning.'
   const sessionId = req.params.sessionId
@@ -216,7 +220,8 @@ const sessionQrCodeImage = async (req, res) => {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
     // Can't send JSON easily before setting headers, maybe just end?
     res.writeHead(HTTP_BAD_REQUEST, { 'Content-Type': 'text/plain' })
-    return res.end('Session ID is required.')
+    res.end('Session ID is required.');
+    return;
   }
 
   try {
@@ -225,20 +230,23 @@ const sessionQrCodeImage = async (req, res) => {
     if (!client) {
       // #swagger.responses[404] = { description: 'Not Found - Session not found.' }
       res.writeHead(HTTP_NOT_FOUND, { 'Content-Type': 'text/plain' })
-      return res.end('Session not found.')
+      res.end('Session not found.');
+      return;
     }
 
     if (client._initializing) {
       // #swagger.responses[202] = { description: 'Accepted - Session is initializing, QR not ready yet.' }
       res.writeHead(HTTP_ACCEPTED, { 'Content-Type': 'text/plain' })
-      return res.end('Session is initializing, QR code not ready yet.')
+      res.end('Session is initializing, QR code not ready yet.');
+      return;
     }
 
     if (client.qr) {
       const qrImage = qr.image(client.qr, { type: 'png' }) // Specify type
       // #swagger.responses[200] = { description: 'OK - QR image.', content: { "image/png": {} } }
       res.writeHead(HTTP_OK, { 'Content-Type': 'image/png' })
-      return qrImage.pipe(res) // Stream the image
+      qrImage.pipe(res); // Stream the image
+      return;
     }
 
     // Check state if no QR found
@@ -246,11 +254,13 @@ const sessionQrCodeImage = async (req, res) => {
     if (state === 'CONNECTED') {
       // #swagger.responses[409] = { description: 'Conflict - QR already scanned and session connected.' } // Keep 409 here maybe? Or 404 for the image?
       res.writeHead(HTTP_CONFLICT, { 'Content-Type': 'text/plain' })
-      return res.end('QR code already scanned and session connected.')
+      res.end('QR code already scanned and session connected.');
+      return;
     } else {
       // #swagger.responses[404] = { description: 'Not Found - QR code not available.' }
       res.writeHead(HTTP_NOT_FOUND, { 'Content-Type': 'text/plain' })
-      return res.end('QR code not available for this session state.')
+      res.end('QR code not available for this session state.');
+      return;
     }
   } catch (error) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
@@ -275,13 +285,13 @@ const sessionQrCodeImage = async (req, res) => {
  * @param {string} req.params.sessionId - The session ID to restart.
  * @returns {Promise<void>}
  */
-const restartSession = async (req, res) => {
+export const restartSession = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Restart session'
   // #swagger.description = 'Terminates the current browser instance and starts re-initializing the session.'
   const sessionId = req.params.sessionId
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
-    return sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
   }
 
   try {
@@ -289,7 +299,7 @@ const restartSession = async (req, res) => {
     const client = sessions.get(sessionId)
     if (!client) {
       // #swagger.responses[404] = { description: 'Not Found - Session not found, cannot restart.' }
-      return res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found, cannot restart.' })
+      res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found, cannot restart.' })
     }
 
     console.log(`[Controller] Restart requested for session: ${sessionId}`)
@@ -297,10 +307,10 @@ const restartSession = async (req, res) => {
 
     // #swagger.responses[200] = { description: 'OK - Session restart process initiated.' }
     res.status(HTTP_OK).json({ success: true, message: 'Session restart initiated successfully.' })
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error during restart.' }
-    console.error('[Controller:restartSession] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred during session restart.')
+    console.error('[Controller:restartSession] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred during session restart.');
   }
 }
 
@@ -314,13 +324,13 @@ const restartSession = async (req, res) => {
  * @param {string} req.params.sessionId - The session ID to terminate.
  * @returns {Promise<void>}
  */
-const terminateSession = async (req, res) => {
+export const terminateSession = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Terminate session'
   // #swagger.description = 'Logs out, terminates the session, and deletes associated data.'
   const sessionId = req.params.sessionId
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
-    return sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
   }
 
   try {
@@ -332,10 +342,10 @@ const terminateSession = async (req, res) => {
     // #swagger.responses[200] = { description: 'OK - Session terminated successfully (or was already inactive).' }
     // Idempotent: return success even if it wasn't running
     res.status(HTTP_OK).json({ success: true, message: 'Session terminated successfully.' })
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error during termination.' }
-    console.error('[Controller:terminateSession] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred during session termination.')
+    console.error('[Controller:terminateSession] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred during session termination.');
   }
 }
 
@@ -348,7 +358,7 @@ const terminateSession = async (req, res) => {
  * @param {Object} res - The HTTP response object.
  * @returns {Promise<void>}
  */
-const terminateInactiveSessions = async (req, res) => {
+export const terminateInactiveSessions = async (_req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Terminate inactive sessions'
   // #swagger.description = 'Terminates all sessions that are not currently in a CONNECTED state.'
   try {
@@ -357,10 +367,10 @@ const terminateInactiveSessions = async (req, res) => {
 
     // #swagger.responses[200] = { description: 'OK - Inactive session flush completed.' }
     res.status(HTTP_OK).json({ success: true, message: 'Inactive session flush completed successfully.' })
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error during flush.' }
-    console.error('[Controller:terminateInactiveSessions] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while flushing inactive sessions.')
+    console.error('[Controller:terminateInactiveSessions] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while flushing inactive sessions.');
   }
 }
 
@@ -373,7 +383,7 @@ const terminateInactiveSessions = async (req, res) => {
  * @param {Object} res - The HTTP response object.
  * @returns {Promise<void>}
  */
-const terminateAllSessions = async (req, res) => {
+export const terminateAllSessions = async (_req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Terminate ALL sessions'
   // #swagger.description = 'Terminates every active or inactive session.'
   try {
@@ -382,10 +392,10 @@ const terminateAllSessions = async (req, res) => {
 
     // #swagger.responses[200] = { description: 'OK - All sessions terminated.' }
     res.status(HTTP_OK).json({ success: true, message: 'All sessions terminated successfully.' })
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error during flush.' }
-    console.error('[Controller:terminateAllSessions] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while terminating all sessions.')
+    console.error('[Controller:terminateAllSessions] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while terminating all sessions.');
   }
 }
 
@@ -398,7 +408,7 @@ const terminateAllSessions = async (req, res) => {
  * @param {Object} res - The HTTP response object.
  * @returns {Promise<void>}
  */
-const getAllSessions = async (req, res) => {
+export const getAllSessions = async (_req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   // #swagger.summary = 'Get all active sessions'
   // #swagger.description = 'Returns a list summarizing the state of all sessions currently active in memory.'
   try {
@@ -425,10 +435,10 @@ const getAllSessions = async (req, res) => {
           try {
             state = await client.getState()
             if (!state) state = 'UNKNOWN' // Handle null/undefined return from getState
-          } catch (stateErr) {
-            console.warn(`[Controller:getAllSessions] Error getting state for ${sessionId}: ${stateErr.message}`)
-            state = 'ERROR'
-            message = `Error getting state: ${stateErr.message}`
+          } catch (stateErr: any) {
+            console.warn(`[Controller:getAllSessions] Error getting state for ${sessionId}: ${stateErr.message}`);
+            state = 'ERROR';
+            message = `Error getting state: ${stateErr.message}`;
           }
 
           // Determine QR status based on state and client.qr
@@ -448,12 +458,12 @@ const getAllSessions = async (req, res) => {
             message = `Session in ${state} state, QR not available.`
           }
         }
-      } catch (clientError) {
+      } catch (clientError: any) {
         // Catch errors accessing client properties like _initializing
-        console.error(`[Controller:getAllSessions] Error processing client ${sessionId}: ${clientError.message}`)
-        state = 'ERROR'
-        qrStatus = 'ERROR'
-        message = `Internal error processing session: ${clientError.message}`
+        console.error(`[Controller:getAllSessions] Error processing client ${sessionId}: ${clientError.message}`);
+        state = 'ERROR';
+        qrStatus = 'ERROR';
+        message = `Internal error processing session: ${clientError.message}`;
       }
 
       sessionsList.push({
@@ -466,21 +476,11 @@ const getAllSessions = async (req, res) => {
 
     // #swagger.responses[200] = { description: 'List of all active sessions.', content: { "application/json": { schema: { ... } } } }
     res.status(HTTP_OK).json({ success: true, sessions: sessionsList })
-  } catch (error) {
+  } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
-    console.error('[Controller:getAllSessions] ERROR:', error)
-    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while retrieving session list.')
+    console.error('[Controller:getAllSessions] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An error occurred while retrieving session list.');
   }
 }
 
-module.exports = {
-  startSession,
-  statusSession,
-  sessionQrCode,
-  sessionQrCodeImage,
-  restartSession,
-  terminateSession,
-  terminateInactiveSessions,
-  terminateAllSessions,
-  getAllSessions
-}
+// All functions are already exported individually above

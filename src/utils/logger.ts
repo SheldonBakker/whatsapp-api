@@ -1,8 +1,10 @@
-const winston = require('winston')
-const { combine, timestamp, printf, colorize, errors, json } = winston.format
+import winston from 'winston';
+import { ChildLoggerOptions } from '../types';
+
+const { combine, timestamp, printf, colorize, errors, json } = winston.format;
 
 // Determine log level from environment variable or default to 'info'
-const logLevel = process.env.LOG_LEVEL || 'info'
+const logLevel: string = process.env.LOG_LEVEL || 'info';
 
 // Custom format for console logging with colors
 const consoleFormat = combine(
@@ -10,20 +12,20 @@ const consoleFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   errors({ stack: true }), // Log stack traces
   printf(({ level, message, timestamp, stack, requestId, sessionId }) => {
-    let log = `${timestamp} ${level}:`
-    if (requestId) log += ` [ReqID: ${requestId}]`
-    if (sessionId) log += ` [Session: ${sessionId}]`
-    log += ` ${stack || message}`
-    return log
+    let log = `${timestamp} ${level}:`;
+    if (requestId) log += ` [ReqID: ${requestId}]`;
+    if (sessionId) log += ` [Session: ${sessionId}]`;
+    log += ` ${stack || message}`;
+    return log;
   })
-)
+);
 
 // Format for file logging (JSON)
 const fileFormat = combine(
   timestamp(),
   errors({ stack: true }), // Include stack traces in file logs
   json() // Log as JSON
-)
+);
 
 const logger = winston.createLogger({
   level: logLevel,
@@ -40,19 +42,19 @@ const logger = winston.createLogger({
     // new winston.transports.File({ filename: 'logs/combined.log' })
   ],
   exitOnError: false // Do not exit on handled exceptions
-})
+});
 
 // Add a stream interface for morgan or other middleware if needed
-logger.stream = {
-  write: (message) => {
+(logger as any).stream = {
+  write: (message: string): void => {
     // Remove potential trailing newline from morgan
-    logger.info(message.trim())
+    logger.info(message.trim());
   }
-}
+};
 
 // Helper function to create a child logger with specific context
-const createChildLogger = (context) => {
-  return logger.child(context)
-}
+const createChildLogger = (context: ChildLoggerOptions): winston.Logger => {
+  return logger.child(context);
+};
 
-module.exports = { logger, createChildLogger }
+export { logger, createChildLogger };

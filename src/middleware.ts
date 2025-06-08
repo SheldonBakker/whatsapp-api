@@ -1,66 +1,69 @@
-const { globalApiKey, rateLimitMax, rateLimitWindowMs } = require('./config')
-const { sendErrorResponse } = require('./utils')
-const { validateSession } = require('./sessions')
-const rateLimiting = require('express-rate-limit')
-const { logger } = require('./utils/logger') // Import logger
-// Import schemas (assuming they are exported correctly)
-// const schemas = require('./utils/validationSchemas'); // Adjust path if needed
+import { Request, Response, NextFunction } from 'express';
+import { globalApiKey, rateLimitMax, rateLimitWindowMs } from './config';
+import { sendErrorResponse } from './utils';
+import { validateSession } from './sessions';
+import rateLimiting from 'express-rate-limit';
+import { logger } from './utils/logger';
+import { AuthenticatedRequest, MiddlewareFunction } from './types';
+import Joi from 'joi';
 
 // --- Generic Joi Validation Middleware ---
-const validate = (schema, property = 'body') => {
-  return async (req, res, next) => {
-    const dataToValidate = req[property]
+export const validate = (schema: Joi.Schema, property: string = 'body'): MiddlewareFunction => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    const dataToValidate = (req as any)[property];
     const options = {
       abortEarly: false, // Return all errors
       allowUnknown: true, // Allow properties not defined in schema (can be adjusted)
       stripUnknown: false // Do not remove unknown properties (can be adjusted)
-    }
+    };
 
     try {
-      await schema.validateAsync(dataToValidate, options)
-      next() // Validation successful
-    } catch (error) {
+      await schema.validateAsync(dataToValidate, options);
+      next(); // Validation successful
+    } catch (error: any) {
       // Log the validation error with details
-      const reqLogger = req.logger || logger // Use request-specific logger if available
-      const errorDetails = error.details.map(detail => ({
+      const reqLogger = req.logger || logger; // Use request-specific logger if available
+      const errorDetails = error.details.map((detail: any) => ({
         message: detail.message,
         path: detail.path,
         type: detail.type
-      }))
+      }));
       reqLogger.warn(`Validation Error (${property}): ${error.message}`, {
         validationProperty: property,
         validationErrors: errorDetails,
         requestData: dataToValidate // Be cautious logging sensitive data
-      })
+      });
 
       // Determine appropriate status code (400 for general bad input, 422 if syntactically correct but semantically wrong)
-      const statusCode = (property === 'body' || property === 'query') ? 400 : 422 // Example logic
+      const statusCode = (property === 'body' || property === 'query') ? 400 : 422; // Example logic
 
       // Send detailed error response (consider simplifying for production)
-      return sendErrorResponse(res, statusCode, 'Validation failed', { errors: errorDetails })
+      sendErrorResponse(res, statusCode, 'Validation failed');
+      return;
     }
-  }
-}
+  };
+};
 
 // JSON payload size validation (Keep as is, Joi doesn't handle raw size)
-const validatePayloadSize = (maxSize = 50 * 1024 * 1024) => { // Default 50MB
-  return (req, res, next) => {
-    const reqLogger = req.logger || logger
-    const contentLength = parseInt(req.headers['content-length'], 10)
+export const validatePayloadSize = (maxSize: number = 50 * 1024 * 1024): MiddlewareFunction => { // Default 50MB
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+    const reqLogger = req.logger || logger;
+    const contentLength = parseInt(req.headers['content-length'] as string, 10);
     if (contentLength > maxSize) {
       reqLogger.warn(`Payload too large: ${contentLength} bytes (Max: ${maxSize})`, {
         contentLength,
         maxSize,
         url: req.originalUrl
-      })
-      return sendErrorResponse(res, 413, 'Payload too large')
+      });
+      sendErrorResponse(res, 413, 'Payload too large');
+      return;
     }
-    next()
-  }
-}
+    next();
+  };
+};
 
 // API Key Validation (Keep as is, specific logic)
-const apikey = async (req, res, next) => {
+export const apikey = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   /*
     #swagger.security = [{
           "apiKeyAuth": []
@@ -77,39 +80,42 @@ const apikey = async (req, res, next) => {
   */
   try {
     // Use the API key from the config, which is loaded from .env
-    const apiKeyFromConfig = globalApiKey
+    const apiKeyFromConfig = globalApiKey;
 
-    const reqLogger = req.logger || logger
+    const reqLogger = req.logger || logger;
     // Ensure API key is set and not empty
     if (!apiKeyFromConfig || apiKeyFromConfig.trim() === '') {
-      reqLogger.error('API key is not configured in environment variables')
-      return sendErrorResponse(res, 500, 'API authentication is not properly configured')
+      reqLogger.error('API key is not configured in environment variables');
+      sendErrorResponse(res, 500, 'API authentication is not properly configured');
+      return;
     }
 
     // Get the API key from the request headers
-    const apiKeyFromRequest = req.headers['x-api-key']
+    const apiKeyFromRequest = req.headers['x-api-key'] as string;
 
     // Check if the API key is present and matches
     if (!apiKeyFromRequest || apiKeyFromRequest !== apiKeyFromConfig) {
-      reqLogger.warn('Invalid API key attempt', { providedKeyStart: apiKeyFromRequest?.substring(0, 8) })
-      return sendErrorResponse(res, 403, 'Invalid API key')
+      reqLogger.warn('Invalid API key attempt', { providedKeyStart: apiKeyFromRequest?.substring(0, 8) });
+      sendErrorResponse(res, 403, 'Invalid API key');
+      return;
     }
 
     // API key is valid, proceed
-    next()
-  } catch (error) {
-    const reqLogger = req.logger || logger
-    reqLogger.error(`API key validation error: ${error.message}`, { error })
+    next();
+  } catch (error: any) {
+    const reqLogger = req.logger || logger;
+    reqLogger.error(`API key validation error: ${error.message}`, { error });
     if (!res.headersSent) {
-      return sendErrorResponse(res, 500, 'Internal server error during authentication')
+      sendErrorResponse(res, 500, 'Internal server error during authentication');
+      return;
     }
   }
-}
+};
 
 // Session Exists/Ready Validation (Keep as is, uses custom logic)
-const sessionValidation = async (req, res, next) => {
+export const sessionValidation = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const validation = await validateSession(req.params.sessionId)
+    const validation = await validateSession(req.params.sessionId);
     if (validation.success !== true) {
       /* #swagger.responses[404] = {
           description: "Not Found.",
@@ -120,39 +126,41 @@ const sessionValidation = async (req, res, next) => {
           }
         }
       */
-      return sendErrorResponse(res, 404, validation.message)
+      sendErrorResponse(res, 404, validation.message);
+      return;
     }
-    next()
-  } catch (error) {
-    const reqLogger = req.logger || logger
-    reqLogger.error(`Session validation error: ${error.message}`, { sessionId: req.params?.sessionId, error })
+    next();
+  } catch (error: any) {
+    const reqLogger = req.logger || logger;
+    reqLogger.error(`Session validation error: ${error.message}`, { sessionId: req.params?.sessionId, error });
     if (!res.headersSent) {
-      return sendErrorResponse(res, 500, 'Error validating session')
+      sendErrorResponse(res, 500, 'Error validating session');
+      return;
     }
   }
-}
+};
 
-const rateLimiter = rateLimiting({
+export const rateLimiter = rateLimiting({
   max: rateLimitMax,
-  windowMS: rateLimitWindowMs,
+  windowMs: rateLimitWindowMs,
   message: "You can't make any more requests at the moment. Try again later"
-})
+});
 
-const sessionSwagger = async (req, res, next) => {
+export const sessionSwagger = async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
   /*
     #swagger.tags = ['Session']
   */
-  next()
-}
+  next();
+};
 
-const clientSwagger = async (req, res, next) => {
+export const clientSwagger = async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
   /*
     #swagger.tags = ['Client']
   */
-  next()
-}
+  next();
+};
 
-const contactSwagger = async (req, res, next) => {
+export const contactSwagger = async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
   /*
     #swagger.tags = ['Contact']
     #swagger.requestBody = {
@@ -169,10 +177,10 @@ const contactSwagger = async (req, res, next) => {
       }
     }
   */
-  next()
-}
+  next();
+};
 
-const messageSwagger = async (req, res, next) => {
+export const messageSwagger = async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
   /*
     #swagger.tags = ['Message']
     #swagger.requestBody = {
@@ -194,10 +202,10 @@ const messageSwagger = async (req, res, next) => {
       }
     }
   */
-  next()
-}
+  next();
+};
 
-const chatSwagger = async (req, res, next) => {
+export const chatSwagger = async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
   /*
     #swagger.tags = ['Chat']
     #swagger.requestBody = {
@@ -214,20 +222,5 @@ const chatSwagger = async (req, res, next) => {
       }
     }
   */
-  next()
-}
-
-module.exports = {
-  validate, // Export the new generic validator
-  validatePayloadSize, // Keep payload size validator
-  sessionValidation, // Keep custom session readiness validator
-  apikey, // Keep API key validator
-  rateLimiter, // Keep rate limiter
-  // --- Swagger middlewares (keep as is) ---
-  sessionSwagger,
-  clientSwagger,
-  contactSwagger,
-  messageSwagger,
-  chatSwagger
-  // Removed: validateRequest, sanitizeContentType, sessionNameValidation (replaced by 'validate')
-}
+  next();
+};

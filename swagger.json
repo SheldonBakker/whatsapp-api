@@ -40,8 +40,8 @@
         ],
         "description": "",
         "responses": {
-          "200": {
-            "description": "OK"
+          "default": {
+            "description": ""
           }
         }
       }
@@ -52,35 +52,11 @@
           "Health"
         ],
         "description": "",
-        "parameters": [
-          {
-            "name": "x-api-key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
+          "default": {
+            "description": ""
           }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
+        }
       }
     },
     "/health": {
@@ -88,1049 +64,31 @@
         "tags": [
           "Health"
         ],
-        "description": "Get detailed health information about the API and system",
-        "parameters": [
-          {
-            "name": "x-api-key",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/start/{sessionId}": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Start new session",
-        "description": "Starts a session for the given session ID.",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Status of the initiated session.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StartSessionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/status/{sessionId}": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Get session status",
-        "description": "Status of the session with the given session ID.",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Status of the session.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StatusSessionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/qr/{sessionId}": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Get session QR code",
-        "description": "QR code of the session with the given session ID.",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/qr/{sessionId}/image": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Get session QR code as image",
-        "description": "QR code as image of the session with the given session ID.",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "QR image.",
-            "content": {
-              "image/png": {}
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/restart/{sessionId}": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Restart session",
-        "description": "Restarts the session with the given session ID.",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sessions restarted.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RestartSessionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/terminate/{sessionId}": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Terminate session",
-        "description": "Terminates the session with the given session ID.",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Sessions terminated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TerminateSessionResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/terminateInactive": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Terminate inactive sessions",
-        "description": "Terminates all inactive sessions.",
-        "responses": {
-          "200": {
-            "description": "Sessions terminated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TerminateSessionsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/terminateAll": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Terminate all sessions",
-        "description": "Terminates all sessions.",
-        "responses": {
-          "200": {
-            "description": "Sessions terminated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TerminateSessionsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/session/all": {
-      "get": {
-        "tags": [
-          "Session"
-        ],
-        "summary": "Get all sessions",
-        "description": "Returns a list of all active sessions.",
-        "responses": {
-          "200": {
-            "description": "List of all sessions.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "sessions": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "state": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server Failure.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/client/getClassInfo/{sessionId}": {
-      "get": {
-        "tags": [
-          "Client"
-        ],
         "description": "",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/client/getNumberId/{sessionId}": {
-      "post": {
-        "tags": [
-          "Client"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "number": {
-                    "type": "string",
-                    "description": "The number or ID ('@c.us' will be automatically appended if not specified)",
-                    "example": "6281288888888"
-                  }
-                }
-              }
-            },
-            "application/xml": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "number": {
-                    "type": "string",
-                    "description": "The number or ID ('@c.us' will be automatically appended if not specified)",
-                    "example": "6281288888888"
-                  }
-                }
-              }
-            }
+          "default": {
+            "description": ""
           }
         }
       }
     },
-    "/client/getState/{sessionId}": {
-      "get": {
-        "tags": [
-          "Client"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/client/sendMessage/{sessionId}": {
+    "/health/check": {
       "post": {
         "tags": [
-          "Client"
+          "Health"
         ],
         "description": "",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
         "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "chatId": {
-                    "type": "string",
-                    "description": "The Chat id which contains the message (Group or Individual)"
-                  },
-                  "contentType": {
-                    "type": "string",
-                    "description": "The type of message content, must be one of the following: string, MessageMedia, MessageMediaFromURL, Location, Buttons, or List"
-                  },
-                  "content": {
-                    "type": "object",
-                    "description": "The content of the message, can be a string or an object"
-                  },
-                  "options": {
-                    "type": "object",
-                    "description": "The message send options"
-                  }
-                }
-              },
-              "examples": {
-                "string": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "string",
-                    "content": "Hello World!"
-                  }
-                },
-                "MessageMedia": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "MessageMedia",
-                    "content": {
-                      "mimetype": "image/jpeg",
-                      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-                      "filename": "image.jpg"
-                    }
-                  }
-                },
-                "MessageMediaFromURL": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "MessageMediaFromURL",
-                    "content": "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=Example"
-                  }
-                },
-                "Location": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "Location",
-                    "content": {
-                      "latitude": -6.2,
-                      "longitude": 106.8,
-                      "description": "Jakarta"
-                    }
-                  }
-                },
-                "Buttons": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "Buttons",
-                    "content": {
-                      "body": "Hello World!",
-                      "buttons": [
-                        {
-                          "body": "button 1"
-                        }
-                      ],
-                      "title": "Hello World!",
-                      "footer": "Hello World!"
-                    }
-                  }
-                },
-                "List": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "List",
-                    "content": {
-                      "body": "Hello World!",
-                      "buttonText": "Hello World!",
-                      "sections": [
-                        {
-                          "title": "sectionTitle",
-                          "rows": [
-                            {
-                              "id": "customId",
-                              "title": "ListItem2",
-                              "description": "desc"
-                            },
-                            {
-                              "title": "ListItem2"
-                            }
-                          ]
-                        }
-                      ],
-                      "title": "Hello World!",
-                      "footer": "Hello World!"
-                    }
-                  }
-                },
-                "Contact": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "Contact",
-                    "content": {
-                      "contactId": "6281288888889@c.us"
-                    }
-                  }
-                },
-                "Poll": {
-                  "value": {
-                    "chatId": "6281288888888@c.us",
-                    "contentType": "Poll",
-                    "content": {
-                      "pollName": "Cats or Dogs?",
-                      "pollOptions": [
-                        "Cats",
-                        "Dogs"
-                      ],
-                      "options": {
-                        "allowMultipleAnswers": true
-                      }
-                    }
-                  }
-                }
-              }
-            }
+          "default": {
+            "description": ""
           }
         }
       }
     },
-    "/client/getWWebVersion/{sessionId}": {
-      "get": {
-        "tags": [
-          "Client"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "apiKeyAuth": []
-          }
-        ]
-      }
-    },
-    "/message/delete/{sessionId}": {
+    "/health/check/{sessionId}": {
       "post": {
         "tags": [
-          "Message"
+          "Health"
         ],
         "description": "",
         "parameters": [
@@ -1140,88 +98,320 @@
             "required": true,
             "schema": {
               "type": "string"
-            },
-            "description": "Unique identifier for the session (alphanumeric and - allowed)",
-            "example": "f8377d8d-a589-4242-9ba6-9486a04ef80c"
+            }
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "403": {
-            "description": "Forbidden.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForbiddenResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "default": {
+            "description": ""
           }
-        },
-        "security": [
+        }
+      }
+    },
+    "/start/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/status/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/qr/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/qr/{sessionId}/image": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/restart/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/terminate/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/terminateInactive": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/terminateAll": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/all": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getClassInfo/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getNumberId/{sessionId}": {
+      "post": {
+        "description": "",
+        "parameters": [
           {
-            "apiKeyAuth": []
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "chatId": {
-                    "type": "string",
-                    "description": "The Chat id which contains the message",
-                    "example": "6281288888888@c.us"
-                  },
-                  "messageId": {
-                    "type": "string",
-                    "description": "Unique whatsApp identifier for the message",
-                    "example": "ABCDEF999999999"
-                  }
-                }
-              }
-            },
-            "application/xml": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "chatId": {
-                    "type": "string",
-                    "description": "The Chat id which contains the message",
-                    "example": "6281288888888@c.us"
-                  },
-                  "messageId": {
-                    "type": "string",
-                    "description": "Unique whatsApp identifier for the message",
-                    "example": "ABCDEF999999999"
-                  }
-                }
-              }
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getState/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/sendMessage/{sessionId}": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             }
+          }
+        ],
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getWWebVersion/{sessionId}": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/delete/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/clearMessages/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/clearState/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/fetchMessages/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getContact/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/sendStateRecording/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/sendStateTyping/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/block/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getAbout/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getChat/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/unblock/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getFormattedNumber/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getCountryCode/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
+    "/getProfilePicUrl/{sessionId}": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
           }
         }
       }
@@ -1240,9 +430,6 @@
             "type": "string",
             "example": "Session initiated successfully"
           }
-        },
-        "xml": {
-          "name": "StartSessionResponse"
         }
       },
       "StatusSessionResponse": {
@@ -1260,9 +447,6 @@
             "type": "string",
             "example": "session_connected"
           }
-        },
-        "xml": {
-          "name": "StatusSessionResponse"
         }
       },
       "RestartSessionResponse": {
@@ -1276,9 +460,6 @@
             "type": "string",
             "example": "Restarted successfully"
           }
-        },
-        "xml": {
-          "name": "RestartSessionResponse"
         }
       },
       "TerminateSessionResponse": {
@@ -1292,9 +473,6 @@
             "type": "string",
             "example": "Logged out successfully"
           }
-        },
-        "xml": {
-          "name": "TerminateSessionResponse"
         }
       },
       "TerminateSessionsResponse": {
@@ -1308,9 +486,6 @@
             "type": "string",
             "example": "Flush completed successfully"
           }
-        },
-        "xml": {
-          "name": "TerminateSessionsResponse"
         }
       },
       "ErrorResponse": {
@@ -1324,9 +499,6 @@
             "type": "string",
             "example": "Error message"
           }
-        },
-        "xml": {
-          "name": "ErrorResponse"
         }
       },
       "NotFoundResponse": {
@@ -1340,9 +512,6 @@
             "type": "string",
             "example": "Resource not found"
           }
-        },
-        "xml": {
-          "name": "NotFoundResponse"
         }
       },
       "ForbiddenResponse": {
@@ -1356,9 +525,6 @@
             "type": "string",
             "example": "Invalid API key"
           }
-        },
-        "xml": {
-          "name": "ForbiddenResponse"
         }
       }
     },

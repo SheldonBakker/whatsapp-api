@@ -1,5 +1,6 @@
-const { sessions } = require('../sessions')
-const { sendErrorResponse } = require('../utils')
+import { sessions } from '../sessions';
+import { sendErrorResponse } from '../utils';
+import { AuthenticatedRequest, TypedResponse } from '../types';
 
 /**
  * Get message by its ID from a given chat using the provided client.
@@ -11,12 +12,12 @@ const { sendErrorResponse } = require('../utils')
  * @returns {Promise<object>} - A Promise that resolves with the message object that matches the provided ID, or undefined if no such message exists.
  * @throws {Error} - Throws an error if the provided client, message ID or chat ID is invalid.
  */
-const _getMessageById = async (client, messageId, chatId) => {
-  const chat = await client.getChatById(chatId)
-  const messages = await chat.fetchMessages({ limit: 100 })
-  const message = messages.find((message) => { return message.id.id === messageId })
-  return message
-}
+const _getMessageById = async (client: any, messageId: string, chatId: string): Promise<any> => {
+  const chat = await client.getChatById(chatId);
+  const messages = await chat.fetchMessages({ limit: 100 });
+  const message = messages.find((message: any) => { return message.id.id === messageId; });
+  return message;
+};
 /**
  * Deletes a message.
  * @async
@@ -29,7 +30,7 @@ const _getMessageById = async (client, messageId, chatId) => {
  * @param {boolean} req.body.everyone - Whether to delete the message for everyone or just the sender.
  * @returns {Promise<void>} - A Promise that resolves with no value when the function completes.
  */
-const deleteMessage = async (req, res) => {
+export const deleteMessage = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
   try {
     const { messageId, chatId, everyone } = req.body
     const client = sessions.get(req.params.sessionId)
@@ -37,11 +38,9 @@ const deleteMessage = async (req, res) => {
     if (!message) { throw new Error('Message not Found') }
     const result = await message.delete(everyone)
     res.json({ success: true, result })
-  } catch (error) {
-    sendErrorResponse(res, 500, error.message)
+  } catch (error: any) {
+    sendErrorResponse(res, 500, error.message);
   }
 }
 
-module.exports = {
-  deleteMessage
-}
+// Function is already exported above
