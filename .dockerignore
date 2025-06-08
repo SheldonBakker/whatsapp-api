@@ -8,6 +8,7 @@ node_modules
 # Ignore logs
 logs
 
+
 # Ignore test files
 tests
 

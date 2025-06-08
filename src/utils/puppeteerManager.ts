@@ -22,7 +22,7 @@ export const safeKillBrowser = async (client: ClientInstance): Promise<void> => 
   // Try to clean up any existing Chrome processes for this session
   try {
     // Find and kill any Chrome processes that might be using this session's profile
-    const profilePath = `/usr/src/app/.wwebjs_auth/session-${sessionId}/puppeteer_chrome_profile`;
+    const profilePath = `${process.cwd()}/.wwebjs_auth/session-${sessionId}/puppeteer_chrome_profile`;
     exec(`pkill -f "${profilePath}"`, (error) => {
       if (!error) {
         logger.info(`Killed Chrome processes using profile: ${profilePath}`, logContext);
@@ -82,7 +82,7 @@ export const generateClientOptions = (sessionId: string, sessionFolderPath: stri
     logger.info('LocalAuth logout called, but overridden to prevent data deletion.', logContext);
   };
 
-  // Base Puppeteer args for resource optimization
+  // Base Puppeteer args optimized for Docker/containerized environments
   const puppeteerArgs: string[] = [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -90,15 +90,15 @@ export const generateClientOptions = (sessionId: string, sessionFolderPath: stri
     '--disable-dev-shm-usage',
     '--disable-accelerated-2d-canvas',
     '--no-first-run',
-    '--no-zygote',
-    '--single-process', // May impact stability slightly, monitor
     '--disable-extensions',
     '--disable-popup-blocking',
     '--disable-sync',
-    '--disable-features=IsolateOrigins,site-per-process',
+    '--disable-features=VizDisplayCompositor',
+    '--disable-features=TranslateUI',
+    '--disable-ipc-flooding-protection',
     '--bwsi',
-    // Use a persistent directory for Chrome user data instead of /tmp
-    `--user-data-dir=/usr/src/app/.wwebjs_auth/session-${sessionId}/puppeteer_chrome_profile`,
+    // Use a persistent directory for Chrome user data
+    `--user-data-dir=${process.cwd()}/.wwebjs_auth/session-${sessionId}/puppeteer_chrome_profile`,
     '--disable-software-rasterizer',
     '--disable-background-networking',
     '--disable-default-apps',
@@ -113,7 +113,31 @@ export const generateClientOptions = (sessionId: string, sessionFolderPath: stri
     '--safebrowsing-disable-auto-update',
     '--password-store=basic',
     '--use-mock-keychain',
-    '--mute-audio'
+    '--mute-audio',
+    // Docker/Container specific optimizations
+    '--disable-web-security',
+    '--disable-features=VizDisplayCompositor',
+    '--disable-features=VizServiceDisplayCompositor',
+    '--disable-logging',
+    '--disable-login-animations',
+    '--disable-motion-blur',
+    '--disable-new-tab-first-run',
+    '--disable-default-apps',
+    '--disable-background-mode',
+    '--disable-component-extensions-with-background-pages',
+    '--disable-component-update',
+    '--disable-domain-reliability',
+    '--disable-features=AudioServiceOutOfProcess',
+    '--disable-features=MediaRouter',
+    '--disable-print-preview',
+    '--disable-speech-api',
+    '--hide-scrollbars',
+    '--mute-audio',
+    '--no-default-browser-check',
+    '--no-pings',
+    '--no-zygote',
+    '--single-process',
+    '--disable-gpu-sandbox'
   ];
 
   const customUserAgent: string = process.env[`${sessionId.toUpperCase()}_USER_AGENT`] ||
@@ -129,13 +153,53 @@ export const generateClientOptions = (sessionId: string, sessionFolderPath: stri
     });
   }
 
+  // Determine Chrome executable path based on environment
+  const getChromePath = (): string | undefined => {
+    // Priority order: PUPPETEER_EXECUTABLE_PATH > CHROME_BIN > CHROME_PATH > auto-detect
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      return process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+    if (process.env.CHROME_BIN) {
+      return process.env.CHROME_BIN;
+    }
+    if (process.env.CHROME_PATH) {
+      return process.env.CHROME_PATH;
+    }
+
+    // Auto-detect based on platform
+    const platform = process.platform;
+    if (platform === 'linux') {
+      // Common paths for Linux/Docker
+      const linuxPaths = [
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable'
+      ];
+      for (const path of linuxPaths) {
+        try {
+          require('fs').accessSync(path, require('fs').constants.F_OK);
+          return path;
+        } catch (e) {
+          // Continue to next path
+        }
+      }
+    } else if (platform === 'darwin') {
+      return '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    }
+
+    return undefined; // Let Puppeteer use its bundled Chromium
+  };
+
   const clientOptions: any = {
     puppeteer: {
       headless: chromeHeadless ? 'new' : false,
       args: puppeteerArgs,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_BIN || undefined,
+      executablePath: getChromePath(),
       dumpio: puppeteerDebug,
-      timeout: 180000 // 3 minutes initialization timeout
+      timeout: 180000, // 3 minutes initialization timeout
+      ignoreDefaultArgs: ['--disable-extensions'], // Allow some extensions for better compatibility
+      defaultViewport: null // Use default viewport
     },
     userAgent: customUserAgent,
     authStrategy: localAuth,

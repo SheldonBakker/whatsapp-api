@@ -63,3 +63,10 @@ docker-compose.override.yml
 *.temp
 .tmp
 .temp
+
+#Ignore Test Files
+test-logs
+test-.wwebjs_auth
+test-.cache
+test-sessions
+.augment

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "WhatsApp API",
-    "description": "Basic Whatsapp API",
+    "description": "REST API wrapper for whatsapp-web.js with multi-session support",
     "version": "1.0.0",
     "contact": {
       "name": "API Support",
@@ -11,7 +11,8 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000/"
+      "url": "http://localhost:3000/",
+      "description": "Development server"
     }
   ],
   "tags": [
@@ -21,398 +22,1445 @@
     },
     {
       "name": "Session",
-      "description": "Manage WhatsApp Web sessions"
+      "description": "Manage WhatsApp Web sessions - create, monitor, and terminate sessions"
     },
     {
       "name": "Client",
-      "description": "Core WhatsApp client operations"
+      "description": "Core WhatsApp client operations - send messages, get contact info"
     },
     {
       "name": "Message",
-      "description": "Operations related to WhatsApp messages"
+      "description": "Operations related to WhatsApp messages - delete messages"
+    },
+    {
+      "name": "Chat",
+      "description": "Chat management operations - clear messages, fetch messages, manage chat state"
+    },
+    {
+      "name": "Contact",
+      "description": "Contact management operations - block/unblock, get profile info"
     }
   ],
   "paths": {
     "/ping": {
       "get": {
-        "tags": [
-          "Health"
-        ],
-        "description": "",
+        "tags": ["Health"],
+        "summary": "Health check ping",
+        "description": "Simple health check endpoint that doesn't require authentication",
         "responses": {
-          "default": {
-            "description": ""
+          "200": {
+            "description": "Server is alive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "pong" }
+                  }
+                }
+              }
+            }
           }
         }
       }
     },
     "/callback": {
       "post": {
-        "tags": [
-          "Health"
-        ],
-        "description": "",
+        "tags": ["Health"],
+        "summary": "Webhook callback endpoint",
+        "description": "Endpoint for receiving webhook callbacks",
+        "security": [{ "apiKeyAuth": [] }],
         "responses": {
-          "default": {
-            "description": ""
+          "200": {
+            "description": "Callback received successfully"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
           }
         }
       }
     },
     "/health": {
       "get": {
-        "tags": [
-          "Health"
-        ],
-        "description": "",
+        "tags": ["Health"],
+        "summary": "Comprehensive health check",
+        "description": "Detailed health check including active sessions and memory usage",
+        "security": [{ "apiKeyAuth": [] }],
         "responses": {
-          "default": {
-            "description": ""
+          "200": {
+            "description": "Health check results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "status": { "type": "string", "example": "healthy" },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "activeSessions": { "type": "number", "example": 2 },
+                        "memoryUsage": { "type": "object" },
+                        "uptime": { "type": "number", "example": 3600 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
           }
         }
       }
     },
     "/health/check": {
       "post": {
-        "tags": [
-          "Health"
-        ],
-        "description": "",
+        "tags": ["Health"],
+        "summary": "Trigger health check",
+        "description": "Manually trigger WhatsApp health check messages for all sessions",
+        "security": [{ "apiKeyAuth": [] }],
         "responses": {
-          "default": {
-            "description": ""
+          "200": {
+            "description": "Health check triggered successfully"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
           }
         }
       }
     },
     "/health/check/{sessionId}": {
       "post": {
-        "tags": [
-          "Health"
-        ],
-        "description": "",
+        "tags": ["Health"],
+        "summary": "Test health check with specific session",
+        "description": "Test health check functionality with a specific session",
+        "security": [{ "apiKeyAuth": [] }],
         "parameters": [
           {
             "name": "sessionId",
             "in": "path",
             "required": true,
+            "description": "The session ID to test health check with",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
             }
           }
         ],
         "responses": {
-          "default": {
-            "description": ""
+          "200": {
+            "description": "Health check test completed"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
           }
         }
       }
     },
-    "/start/{sessionId}": {
+    "/session/start/{sessionId}": {
       "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/status/{sessionId}": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/qr/{sessionId}": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/qr/{sessionId}/image": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/restart/{sessionId}": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/terminate/{sessionId}": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/terminateInactive": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/terminateAll": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/all": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/getClassInfo/{sessionId}": {
-      "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      },
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/getNumberId/{sessionId}": {
-      "post": {
-        "description": "",
+        "tags": ["Session"],
+        "summary": "Start a WhatsApp session",
+        "description": "Initiates a new WhatsApp Web session or confirms an existing one is starting/running",
+        "security": [{ "apiKeyAuth": [] }],
         "parameters": [
           {
             "name": "sessionId",
             "in": "path",
             "required": true,
+            "description": "Unique identifier for the WhatsApp session",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
             }
           }
         ],
         "responses": {
-          "default": {
-            "description": ""
-          }
+          "200": {
+            "description": "Session already exists or is initializing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StartSessionResponse" }
+              }
+            }
+          },
+          "202": {
+            "description": "Session initialization started",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StartSessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "422": { "$ref": "#/components/responses/UnprocessableEntityResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getState/{sessionId}": {
+    "/session/status/{sessionId}": {
       "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
-          }
-        }
-      }
-    },
-    "/sendMessage/{sessionId}": {
-      "post": {
-        "description": "",
+        "tags": ["Session"],
+        "summary": "Get session status",
+        "description": "Retrieves the current status and state of a WhatsApp session",
+        "security": [{ "apiKeyAuth": [] }],
         "parameters": [
           {
             "name": "sessionId",
             "in": "path",
             "required": true,
+            "description": "The session ID to check status for",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
             }
           }
         ],
         "responses": {
-          "default": {
-            "description": ""
-          }
+          "200": {
+            "description": "Session status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StatusSessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getWWebVersion/{sessionId}": {
+    "/session/qr/{sessionId}": {
       "get": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+        "tags": ["Session"],
+        "summary": "Get QR code data",
+        "description": "Retrieves the QR code data for session authentication",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get QR code for",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR code data retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "qr": { "type": "string", "description": "QR code data string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/delete/{sessionId}": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+    "/session/qr/{sessionId}/image": {
+      "get": {
+        "tags": ["Session"],
+        "summary": "Get QR code image",
+        "description": "Retrieves the QR code as a PNG image for session authentication",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get QR code image for",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR code image",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/clearMessages/{sessionId}": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+    "/session/restart/{sessionId}": {
+      "get": {
+        "tags": ["Session"],
+        "summary": "Restart session",
+        "description": "Terminates the current browser instance and starts re-initializing the session",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to restart",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session restart initiated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RestartSessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/clearState/{sessionId}": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+    "/session/terminate/{sessionId}": {
+      "get": {
+        "tags": ["Session"],
+        "summary": "Terminate session",
+        "description": "Logs out, terminates the session, and deletes associated data",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to terminate",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session terminated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TerminateSessionResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/fetchMessages/{sessionId}": {
-      "post": {
-        "description": "",
+    "/session/terminateInactive": {
+      "get": {
+        "tags": ["Session"],
+        "summary": "Terminate inactive sessions",
+        "description": "Terminates all inactive or disconnected sessions",
+        "security": [{ "apiKeyAuth": [] }],
         "responses": {
-          "default": {
-            "description": ""
-          }
+          "200": {
+            "description": "Inactive sessions terminated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TerminateSessionsResponse" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getContact/{sessionId}": {
-      "post": {
-        "description": "",
+    "/session/terminateAll": {
+      "get": {
+        "tags": ["Session"],
+        "summary": "Terminate all sessions",
+        "description": "Terminates every active or inactive session",
+        "security": [{ "apiKeyAuth": [] }],
         "responses": {
-          "default": {
-            "description": ""
-          }
+          "200": {
+            "description": "All sessions terminated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TerminateSessionsResponse" }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/sendStateRecording/{sessionId}": {
-      "post": {
-        "description": "",
+    "/session/all": {
+      "get": {
+        "tags": ["Session"],
+        "summary": "Get all active sessions",
+        "description": "Returns a list summarizing the state of all sessions currently active in memory",
+        "security": [{ "apiKeyAuth": [] }],
         "responses": {
-          "default": {
-            "description": ""
-          }
+          "200": {
+            "description": "List of all active sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sessionId": { "type": "string", "example": "session1" },
+                          "state": { "type": "string", "example": "CONNECTED" },
+                          "status": { "type": "string", "example": "Ready" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/sendStateTyping/{sessionId}": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+    "/client/getClassInfo/{sessionId}": {
+      "get": {
+        "tags": ["Client"],
+        "summary": "Get client class information",
+        "description": "Retrieves class information from the WhatsApp client",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get class info from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "Class information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "object", "description": "Client class information" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/block/{sessionId}": {
+    "/client/getNumberId/{sessionId}": {
       "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+        "tags": ["Client"],
+        "summary": "Get WhatsApp number ID",
+        "description": "Retrieves the registered WhatsApp ID for a phone number",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to use for the lookup",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["number"],
+                "properties": {
+                  "number": {
+                    "type": "string",
+                    "pattern": "^[0-9+\\s]+$",
+                    "description": "Phone number to lookup",
+                    "example": "1234567890"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Number ID retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "numberId": { "type": "string", "example": "1234567890@c.us" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getAbout/{sessionId}": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+    "/client/getState/{sessionId}": {
+      "get": {
+        "tags": ["Client"],
+        "summary": "Get client state",
+        "description": "Retrieves the current state of the WhatsApp client",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get state from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client state retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "state": { "type": "string", "example": "CONNECTED" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getChat/{sessionId}": {
+    "/client/sendMessage/{sessionId}": {
       "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+        "tags": ["Client"],
+        "summary": "Send a message",
+        "description": "Send a message to a chat using the WhatsApp API. Supports text, media, location, buttons, lists, contacts, and polls.",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to send message from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SendMessageRequest" },
+              "examples": {
+                "text": {
+                  "summary": "Text message",
+                  "value": {
+                    "chatId": "1234567890@c.us",
+                    "contentType": "text",
+                    "content": "Hello World!"
+                  }
+                },
+                "media": {
+                  "summary": "Media message",
+                  "value": {
+                    "chatId": "1234567890@c.us",
+                    "contentType": "MessageMedia",
+                    "content": {
+                      "mimetype": "image/jpeg",
+                      "data": "base64-encoded-image-data",
+                      "filename": "image.jpg"
+                    }
+                  }
+                },
+                "location": {
+                  "summary": "Location message",
+                  "value": {
+                    "chatId": "1234567890@c.us",
+                    "contentType": "Location",
+                    "content": {
+                      "latitude": -6.2,
+                      "longitude": 106.8,
+                      "description": "Jakarta"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "object", "description": "Sent message object" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/unblock/{sessionId}": {
-      "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+    "/client/getWWebVersion/{sessionId}": {
+      "get": {
+        "tags": ["Client"],
+        "summary": "Get WhatsApp Web version",
+        "description": "Retrieves the current WhatsApp Web version being used",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get version from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "responses": {
+          "200": {
+            "description": "WhatsApp Web version retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "version": { "type": "string", "example": "2.2412.54" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getFormattedNumber/{sessionId}": {
+    "/message/delete/{sessionId}": {
       "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+        "tags": ["Message"],
+        "summary": "Delete a message",
+        "description": "Delete a specific message from a chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to delete message from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["chatId", "messageId"],
+                "properties": {
+                  "chatId": {
+                    "type": "string",
+                    "pattern": "^[0-9@.+-\\s]+$",
+                    "description": "Chat ID where the message is located",
+                    "example": "1234567890@c.us"
+                  },
+                  "messageId": {
+                    "type": "string",
+                    "description": "ID of the message to delete",
+                    "example": "messageId123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Message deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getCountryCode/{sessionId}": {
+    "/chat/getClassInfo/{sessionId}": {
       "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+        "tags": ["Chat"],
+        "summary": "Get chat class information",
+        "description": "Retrieves class information from a chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get chat class info from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat class information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "object", "description": "Chat class information" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     },
-    "/getProfilePicUrl/{sessionId}": {
+    "/chat/delete/{sessionId}": {
       "post": {
-        "description": "",
-        "responses": {
-          "default": {
-            "description": ""
+        "tags": ["Chat"],
+        "summary": "Delete a chat",
+        "description": "Delete a specific chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to delete chat from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat deleted successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/chat/clearMessages/{sessionId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Clear chat messages",
+        "description": "Clear all messages from a specific chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to clear messages from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat messages cleared successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/chat/clearState/{sessionId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Clear chat state",
+        "description": "Clear the state of a specific chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to clear chat state from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat state cleared successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/chat/fetchMessages/{sessionId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Fetch chat messages",
+        "description": "Fetch messages from a specific chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to fetch messages from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Messages fetched successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "messages": {
+                      "type": "array",
+                      "items": { "type": "object", "description": "Message object" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/chat/getContact/{sessionId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Get contact from chat",
+        "description": "Get contact information from a chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get contact from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact information retrieved successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/chat/sendStateRecording/{sessionId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Send recording state",
+        "description": "Send recording state to a chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to send recording state from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recording state sent successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/chat/sendStateTyping/{sessionId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "Send typing state",
+        "description": "Send typing state to a chat",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to send typing state from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChatIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Typing state sent successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/getClassInfo/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Get contact class information",
+        "description": "Retrieves class information from a contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get contact class info from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact class information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "type": "object", "description": "Contact class information" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/block/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Block a contact",
+        "description": "Block a specific contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to block contact from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact blocked successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/getAbout/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Get contact about",
+        "description": "Get the about/status message of a contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get contact about from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact about retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "about": { "type": "string", "example": "Hey there! I am using WhatsApp." }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/getChat/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Get contact chat",
+        "description": "Get chat information for a contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get contact chat from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact chat retrieved successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/unblock/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Unblock a contact",
+        "description": "Unblock a previously blocked contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to unblock contact from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contact unblocked successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/getFormattedNumber/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Get formatted number",
+        "description": "Get the formatted phone number of a contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get formatted number from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Formatted number retrieved successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/getCountryCode/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Get country code",
+        "description": "Get the country code of a contact's phone number",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get country code from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Country code retrieved successfully"
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
+        }
+      }
+    },
+    "/contact/getProfilePicUrl/{sessionId}": {
+      "post": {
+        "tags": ["Contact"],
+        "summary": "Get profile picture URL",
+        "description": "Get the profile picture URL of a contact",
+        "security": [{ "apiKeyAuth": [] }],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to get profile picture from",
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9-_]+$",
+              "example": "session1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ContactIdRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile picture URL retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "profilePicUrl": { "type": "string", "example": "https://example.com/profile.jpg" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequestResponse" },
+          "403": { "$ref": "#/components/responses/ForbiddenResponse" },
+          "404": { "$ref": "#/components/responses/NotFoundResponse" },
+          "500": { "$ref": "#/components/responses/ErrorResponse" }
         }
       }
     }
@@ -429,6 +1477,10 @@
           "message": {
             "type": "string",
             "example": "Session initiated successfully"
+          },
+          "state": {
+            "type": "string",
+            "example": "INITIALIZING"
           }
         }
       },
@@ -488,6 +1540,58 @@
           }
         }
       },
+      "SendMessageRequest": {
+        "type": "object",
+        "required": ["chatId", "content", "contentType"],
+        "properties": {
+          "chatId": {
+            "type": "string",
+            "pattern": "^[0-9@.+-\\s]+$",
+            "description": "Chat ID where the message will be sent",
+            "example": "1234567890@c.us"
+          },
+          "content": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "object" }
+            ],
+            "description": "Message content - can be text string or object for media/location/etc"
+          },
+          "contentType": {
+            "type": "string",
+            "enum": ["text", "MessageMedia", "MessageMediaFromURL", "Location", "Buttons", "List", "Contact", "Poll"],
+            "description": "Type of content being sent"
+          },
+          "options": {
+            "type": "object",
+            "description": "Additional message options"
+          }
+        }
+      },
+      "ChatIdRequest": {
+        "type": "object",
+        "required": ["chatId"],
+        "properties": {
+          "chatId": {
+            "type": "string",
+            "pattern": "^[0-9@.+-\\s]+$",
+            "description": "Chat ID to perform operation on",
+            "example": "1234567890@c.us"
+          }
+        }
+      },
+      "ContactIdRequest": {
+        "type": "object",
+        "required": ["contactId"],
+        "properties": {
+          "contactId": {
+            "type": "string",
+            "pattern": "^[0-9+\\s]+$",
+            "description": "Contact ID or phone number",
+            "example": "1234567890"
+          }
+        }
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -524,6 +1628,74 @@
           "error": {
             "type": "string",
             "example": "Invalid API key"
+          }
+        }
+      },
+      "BadRequestResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Bad request - invalid parameters"
+          }
+        }
+      },
+      "UnprocessableEntityResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "example": "Unprocessable entity - validation failed"
+          }
+        }
+      }
+    },
+    "responses": {
+      "ErrorResponse": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+          }
+        }
+      },
+      "NotFoundResponse": {
+        "description": "Resource Not Found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/NotFoundResponse" }
+          }
+        }
+      },
+      "ForbiddenResponse": {
+        "description": "Forbidden - Invalid API Key",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/ForbiddenResponse" }
+          }
+        }
+      },
+      "BadRequestResponse": {
+        "description": "Bad Request - Invalid Parameters",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/BadRequestResponse" }
+          }
+        }
+      },
+      "UnprocessableEntityResponse": {
+        "description": "Unprocessable Entity - Validation Failed",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/UnprocessableEntityResponse" }
           }
         }
       }

@@ -9,6 +9,7 @@ import {
 } from '../sessions';
 import { sendErrorResponse } from '../utils';
 import { AuthenticatedRequest, TypedResponse } from '../types';
+import { SessionRecovery } from '../utils/sessionRecovery';
 
 // Define standard status codes
 const HTTP_OK = 200;
@@ -51,6 +52,7 @@ export const startSession = async (req: AuthenticatedRequest, res: TypedResponse
         // #swagger.responses[422] = { description: 'Unprocessable Entity - Setup failed (e.g., critical error like folder creation).' }
         // Use setupResult.message which might contain specific error
         sendErrorResponse(res, HTTP_UNPROCESSABLE_ENTITY, setupResult.message || 'Failed to initiate session setup.')
+        return;
       }
 
       // #swagger.responses[202] = { description: 'Accepted - Session initialization started. Poll /status for progress.' }
@@ -73,6 +75,7 @@ export const startSession = async (req: AuthenticatedRequest, res: TypedResponse
       console.error(`[Controller] Unexpected validation state for ${sessionId}:`, currentStatus)
       // #swagger.responses[500] = { description: 'Internal Server Error - Unexpected session state during start.' }
       sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, `Unexpected session state: ${currentStatus.message}`)
+      return;
     }
   } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
@@ -98,6 +101,7 @@ export const statusSession = async (req: AuthenticatedRequest, res: TypedRespons
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
     sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    return;
   }
 
   try {
@@ -106,6 +110,7 @@ export const statusSession = async (req: AuthenticatedRequest, res: TypedRespons
     if (sessionData.message === 'session_not_found_in_memory') {
       // #swagger.responses[404] = { description: 'Not Found - Session with this ID does not exist.' }
       res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found.', state: 'NOT_FOUND' })
+      return;
     }
 
     // Add QR status information based on session state and qr presence
@@ -129,7 +134,7 @@ export const statusSession = async (req: AuthenticatedRequest, res: TypedRespons
     }
 
     const responsePayload = {
-      success: sessionData.success,
+      success: true, // Always true for found sessions
       message: sessionData.message,
       state: sessionData.state || 'UNKNOWN', // Default to UNKNOWN if null
       qr: client?.qr, // Include QR code string if available
@@ -142,6 +147,64 @@ export const statusSession = async (req: AuthenticatedRequest, res: TypedRespons
   } catch (error: any) {
     // #swagger.responses[500] = { description: 'Internal Server Error.' }
     console.error('[Controller:statusSession] ERROR:', error);
+    sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred fetching status.');
+  }
+}
+
+/**
+ * Enhanced session status with automatic recovery for browser issues.
+ *
+ * @function
+ * @async
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {string} req.params.sessionId - The session ID.
+ * @returns {Promise<void>}
+ */
+export const sessionStatusWithRecovery = async (req: AuthenticatedRequest, res: TypedResponse): Promise<void> => {
+  // #swagger.summary = 'Get session status with automatic recovery'
+  // #swagger.description = 'Returns session status and attempts automatic recovery if browser issues are detected.'
+  const sessionId = req.params.sessionId
+  if (!sessionId) {
+    // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
+    sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    return;
+  }
+
+  try {
+    const statusResult = await SessionRecovery.getSessionStatusWithRecovery(sessionId);
+
+    if (!statusResult.success && statusResult.state === 'ERROR' && !statusResult.recoveryAttempted) {
+      // #swagger.responses[404] = { description: 'Not Found - Session not found or in error state.' }
+      res.status(HTTP_NOT_FOUND).json({
+        success: false,
+        message: statusResult.message,
+        state: 'NOT_FOUND'
+      });
+      return;
+    }
+
+    // Return status with recovery information
+    const responsePayload = {
+      success: statusResult.success,
+      message: statusResult.message,
+      state: statusResult.state,
+      qrStatus: statusResult.qrStatus,
+      qr: statusResult.qr,
+      ...(statusResult.recoveryAttempted && {
+        recovery: {
+          attempted: statusResult.recoveryAttempted,
+          result: statusResult.recoveryResult,
+          attempts: SessionRecovery.getRecoveryAttempts(sessionId)
+        }
+      })
+    };
+
+    // #swagger.responses[200] = { description: 'Session status with recovery information.' }
+    res.status(HTTP_OK).json(responsePayload);
+  } catch (error: any) {
+    // #swagger.responses[500] = { description: 'Internal Server Error.' }
+    console.error('[Controller:sessionStatusWithRecovery] ERROR:', error);
     sendErrorResponse(res, HTTP_INTERNAL_SERVER_ERROR, error.message || 'An unexpected error occurred fetching status.');
   }
 }
@@ -163,6 +226,7 @@ export const sessionQrCode = async (req: AuthenticatedRequest, res: TypedRespons
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
     sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    return;
   }
 
   try {
@@ -292,6 +356,7 @@ export const restartSession = async (req: AuthenticatedRequest, res: TypedRespon
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
     sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    return;
   }
 
   try {
@@ -300,6 +365,7 @@ export const restartSession = async (req: AuthenticatedRequest, res: TypedRespon
     if (!client) {
       // #swagger.responses[404] = { description: 'Not Found - Session not found, cannot restart.' }
       res.status(HTTP_NOT_FOUND).json({ success: false, message: 'Session not found, cannot restart.' })
+      return;
     }
 
     console.log(`[Controller] Restart requested for session: ${sessionId}`)
@@ -331,6 +397,7 @@ export const terminateSession = async (req: AuthenticatedRequest, res: TypedResp
   if (!sessionId) {
     // #swagger.responses[400] = { description: 'Bad Request - Session ID required.' }
     sendErrorResponse(res, HTTP_BAD_REQUEST, 'Session ID is required.')
+    return;
   }
 
   try {
@@ -467,7 +534,7 @@ export const getAllSessions = async (_req: AuthenticatedRequest, res: TypedRespo
       }
 
       sessionsList.push({
-        id: sessionId,
+        sessionId: sessionId, // Use sessionId instead of id to match API documentation
         state,
         qrStatus,
         message // Add descriptive message

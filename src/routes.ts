@@ -56,6 +56,7 @@ sessionRouter.use('/:sessionId', validate(schemas.sessionIdParamSchema, 'params'
 
 sessionRouter.get('/start/:sessionId', sessionController.startSession); // Validation applied by .use() above
 sessionRouter.get('/status/:sessionId', sessionController.statusSession); // Validation applied by .use() above
+sessionRouter.get('/status-enhanced/:sessionId', sessionController.sessionStatusWithRecovery); // Enhanced status with recovery
 sessionRouter.get('/qr/:sessionId', sessionController.sessionQrCode); // Validation applied by .use() above
 sessionRouter.get('/qr/:sessionId/image', sessionController.sessionQrCodeImage); // Validation applied by .use() above
 sessionRouter.get('/restart/:sessionId', sessionController.restartSession); // Validation applied by .use() above

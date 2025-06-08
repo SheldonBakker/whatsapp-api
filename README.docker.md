@@ -1,39 +1,54 @@
 # Docker Setup for WhatsApp API
 
-This document provides instructions for running the WhatsApp API using Docker with our refined Docker Compose configuration.
+This document provides comprehensive instructions for running the WhatsApp API using Docker with optimized Chrome/Puppeteer configuration and session recovery capabilities.
 
 ## Prerequisites
 
 - Docker and Docker Compose installed on your system
+- At least 4GB RAM available for the container
 - Basic understanding of Docker concepts
 
 ## Quick Start
 
-1. Run the setup script to create necessary directories:
+1. **Prepare the environment:**
    ```bash
-   # On Windows
-   docker-setup.bat
-
    # On Linux/Mac
    chmod +x docker-setup.sh
    ./docker-setup.sh
+
+   # On Windows (use Git Bash or WSL)
+   bash docker-setup.sh
    ```
 
-2. Configure environment variables:
+2. **Configure environment variables:**
    ```bash
    # Use the Docker-optimized environment file
    cp .env.docker .env
-   # Edit .env file with your preferred settings
+   # Edit .env file with your preferred settings if needed
    ```
 
-3. Build and start the containers:
+3. **Build and start the containers:**
    ```bash
-   docker-compose up -d
+   # Build and start in detached mode
+   docker-compose up -d --build
+
+   # Or start with logs visible
+   docker-compose up --build
    ```
 
-4. The API will be available at http://localhost:5656
+4. **Verify the service is running:**
+   ```bash
+   # Check container status
+   docker-compose ps
 
-5. Access the Swagger documentation at http://localhost:5656/api-docs
+   # Check health status
+   curl http://localhost:5656/health
+   ```
+
+5. **Access the API:**
+   - API Base URL: http://localhost:5656
+   - Swagger Documentation: http://localhost:5656/api-docs
+   - Health Check: http://localhost:5656/health
 
 ## Configuration
 
@@ -123,28 +138,259 @@ To access the API from another device on your network:
 
 3. For webhook callbacks, you may need to update the `BASE_WEBHOOK_URL` in your `.env` file to use your host machine's IP instead of `localhost` or `host.docker.internal`.
 
-## Troubleshooting
+## Session Management
 
-### QR Code Not Displaying
+### Creating and Managing Sessions
 
-If you're having trouble with QR code display:
-
-1. Ensure the container has proper permissions to create and write to the mounted volumes
-2. Check container logs:
+1. **Create a new session:**
    ```bash
-   docker-compose logs -f whatsapp-api
+   curl -X GET "http://localhost:5656/session/start/my-session" \
+     -H "x-api-key: 0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2"
    ```
 
-### Container Crashes
+2. **Check session status with enhanced recovery:**
+   ```bash
+   curl -X GET "http://localhost:5656/session/status-enhanced/my-session" \
+     -H "x-api-key: 0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2"
+   ```
 
-If the container crashes:
+3. **Get QR code for scanning:**
+   ```bash
+   # Get QR as image
+   curl -X GET "http://localhost:5656/session/qr/my-session/image" \
+     -H "x-api-key: 0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2" \
+     --output qr.png
 
-1. Check if Chrome can run properly in the container
-2. Ensure all required directories exist and have proper permissions
-3. Check the logs for specific error messages
+   # Or visit in browser
+   open http://localhost:5656/session/qr/my-session/image
+   ```
+
+4. **List all sessions:**
+   ```bash
+   curl -X GET "http://localhost:5656/session/all" \
+     -H "x-api-key: 0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2"
+   ```
+
+### Session Recovery
+
+The API includes automatic session recovery for browser failures:
+
+- **Enhanced Status Endpoint**: `/session/status-enhanced/{sessionId}` automatically detects and recovers from browser issues
+- **Automatic Recovery**: Up to 3 recovery attempts with exponential backoff
+- **Docker-Optimized**: Handles container-specific browser failures
+
+## Troubleshooting
+
+### Container Won't Start
+
+1. **Check Docker resources:**
+   ```bash
+   # Ensure Docker has enough memory (4GB+ recommended)
+   docker system info
+   ```
+
+2. **Check port conflicts:**
+   ```bash
+   # Make sure port 5656 is not in use
+   lsof -i :5656
+   netstat -tulpn | grep 5656
+   ```
+
+3. **Rebuild with no cache:**
+   ```bash
+   docker-compose down
+   docker-compose build --no-cache
+   docker-compose up -d
+   ```
+
+### Browser/Chrome Issues
+
+1. **Check Chrome installation in container:**
+   ```bash
+   docker-compose exec whatsapp-api which chromium-browser
+   docker-compose exec whatsapp-api chromium-browser --version
+   ```
+
+2. **Check browser permissions:**
+   ```bash
+   docker-compose exec whatsapp-api ls -la /usr/bin/chromium-browser
+   ```
+
+3. **View detailed browser logs:**
+   ```bash
+   # Enable Puppeteer debugging
+   docker-compose down
+   # Edit .env and set PUPPETEER_DEBUG=TRUE
+   docker-compose up
+   ```
+
+### Session Recovery Issues
+
+1. **Check session recovery logs:**
+   ```bash
+   docker-compose logs -f whatsapp-api | grep -i recovery
+   ```
+
+2. **Test enhanced status endpoint:**
+   ```bash
+   curl -v -X GET "http://localhost:5656/session/status-enhanced/test-session" \
+     -H "x-api-key: 0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2"
+   ```
+
+3. **Manual session restart:**
+   ```bash
+   curl -X GET "http://localhost:5656/session/restart/my-session" \
+     -H "x-api-key: 0cecfcdb-0cdb-4463-91ba-9f70dbd4f6f2"
+   ```
+
+### Memory Issues
+
+1. **Check container memory usage:**
+   ```bash
+   docker stats whatsapp-api
+   ```
+
+2. **Increase memory limits in docker-compose.yml:**
+   ```yaml
+   services:
+     whatsapp-api:
+       mem_limit: 6g  # Increase from 4g
+       shm_size: 3gb  # Increase from 2gb
+   ```
+
+### Volume Permission Issues
+
+1. **Fix volume permissions:**
+   ```bash
+   ./docker-setup.sh
+   ```
+
+2. **Manual permission fix:**
+   ```bash
+   sudo chown -R 1001:1001 sessions .wwebjs_auth .cache logs
+   chmod -R 755 sessions .wwebjs_auth .cache logs
+   ```
+
+### Network Issues
+
+1. **Check container networking:**
+   ```bash
+   docker-compose exec whatsapp-api ping google.com
+   ```
+
+2. **Check webhook connectivity:**
+   ```bash
+   # Test webhook endpoint
+   curl -X POST "http://localhost:5656/callback" \
+     -H "Content-Type: application/json" \
+     -d '{"test": "data"}'
+   ```
+
+### Debugging Commands
+
+1. **Access container shell:**
+   ```bash
+   docker-compose exec whatsapp-api sh
+   ```
+
+2. **View all logs:**
+   ```bash
+   docker-compose logs -f --tail=100 whatsapp-api
+   ```
+
+3. **Check environment variables:**
+   ```bash
+   docker-compose exec whatsapp-api env | grep -E "(CHROME|PUPPETEER|NODE)"
+   ```
+
+4. **Test Chrome manually:**
+   ```bash
+   docker-compose exec whatsapp-api chromium-browser --version
+   docker-compose exec whatsapp-api chromium-browser --headless --dump-dom https://google.com
+   ```
+
+## Performance Optimization
+
+### Resource Allocation
+
+- **Memory**: Minimum 4GB, recommended 6GB+
+- **CPU**: Minimum 2 cores, recommended 4 cores
+- **Storage**: SSD recommended for session data
+
+### Container Optimization
+
+1. **Adjust memory limits:**
+   ```yaml
+   mem_limit: 6g
+   memswap_limit: 6g
+   shm_size: 3gb
+   ```
+
+2. **CPU limits:**
+   ```yaml
+   cpus: '4.0'
+   ```
+
+3. **Use named volumes for better performance:**
+   ```yaml
+   volumes:
+     - sessions_data:/usr/src/app/sessions
+     - auth_data:/usr/src/app/.wwebjs_auth
+   ```
 
 ## Security Considerations
 
-- The default API key in the example is for demonstration only. Always use a strong, unique API key in production.
-- Consider using Docker secrets or a secure environment variable management solution for sensitive data.
-- Restrict access to the API endpoint using a reverse proxy with authentication if exposed publicly.
+- **Change default API key** in production
+- **Use Docker secrets** for sensitive environment variables
+- **Restrict network access** using Docker networks
+- **Regular security updates** of base images
+- **Monitor container logs** for suspicious activity
+
+## Production Deployment
+
+### Docker Swarm
+
+```yaml
+version: '3.8'
+services:
+  whatsapp-api:
+    image: your-registry/whatsapp-api:latest
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 6G
+          cpus: '2.0'
+        reservations:
+          memory: 4G
+          cpus: '1.0'
+```
+
+### Kubernetes
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsapp-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: whatsapp-api
+  template:
+    metadata:
+      labels:
+        app: whatsapp-api
+    spec:
+      containers:
+      - name: whatsapp-api
+        image: your-registry/whatsapp-api:latest
+        resources:
+          limits:
+            memory: "6Gi"
+            cpu: "2000m"
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+```
